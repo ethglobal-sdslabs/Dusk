@@ -1,0 +1,19 @@
+{
+  "name": "@dusk/buyer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./verify": "./src/verify.ts"
+  },
+  "dependencies": {
+    "@dusk/arkiv": "workspace:*",
+    "@dusk/core": "workspace:*",
+    "@dusk/crypto": "workspace:*",
+    "@dusk/escrow": "workspace:*",
+    "@dusk/og": "workspace:*",
+    "viem": "^2.38.2"
+  }
+}
