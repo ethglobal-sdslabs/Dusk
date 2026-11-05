@@ -1,0 +1,124 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "0gm-1.0-35b-a3b",
+      "object": "model",
+      "type": "chatbot",
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": [
+          "text",
+          "image"
+        ],
+        "output_modalities": [
+          "text"
+        ],
+        "instruct_type": "chatml",
+        "tokenizer": "qwen"
+      },
+      "verifiability": "TeeML",
+      "pricing": {
+        "prompt": "548000000000",
+        "completion": "3290000000000"
+      },
+      "pricing_usd": {
+        "prompt": "0.00000008",
+        "completion": "0.00000048"
+      }
+    },
+    {
+      "id": "qwen2.5-vl-72b-instruct",
+      "object": "model",
+      "type": "chatbot",
+      "architecture": {
+        "input_modalities": [
+          "text",
+          "image"
+        ],
+        "output_modalities": [
+          "text"
+        ]
+      },
+      "pricing": {
+        "prompt": "308586734474",
+        "completion": "1337209182719"
+      },
+      "pricing_usd": {
+        "prompt": "0.000000045",
+        "completion": "0.000000195"
+      }
+    },
+    {
+      "id": "qwen3-coder-flash",
+      "object": "model",
+      "type": "chatbot",
+      "architecture": {
+        "input_modalities": [
+          "text"
+        ],
+        "output_modalities": [
+          "text"
+        ]
+      },
+      "pricing": {
+        "prompt": "1000047316633",
+        "completion": "4000196124014"
+      },
+      "pricing_usd": {
+        "prompt": "0.000000145833",
+        "completion": "0.000000583333"
+      }
+    },
+    {
+      "id": "qwen3-embedding-8b",
+      "object": "model",
+      "type": "embedding",
+      "architecture": {
+        "modality": "text->embedding",
+        "input_modalities": [
+          "text"
+        ],
+        "output_modalities": [
+          "embedding"
+        ],
+        "tokenizer": "qwen"
+      },
+      "verifiability": "TeeML",
+      "pricing": {
+        "prompt": "68400000000",
+        "completion": "0"
+      },
+      "pricing_usd": {
+        "prompt": "0.00000001",
+        "completion": "0"
+      }
+    },
+    {
+      "id": "z-image-turbo",
+      "object": "model",
+      "type": "text-to-image",
+      "architecture": {
+        "modality": "text->image",
+        "input_modalities": [
+          "text"
+        ],
+        "output_modalities": [
+          "image"
+        ]
+      },
+      "verifiability": "TeeML",
+      "pricing": {
+        "prompt": "0",
+        "completion": "0",
+        "image": "60411340000000000"
+      },
+      "pricing_usd": {
+        "prompt": "0",
+        "completion": "0",
+        "image": "0.0088"
+      }
+    }
+  ],
+  "_source": "GET https://router-api.0g.ai/v1/models, 2026-11-06, five entries kept, fields trimmed"
+}
