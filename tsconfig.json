@@ -1,0 +1,61 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "@dusk/core": [
+        "./packages/core/src/index.ts"
+      ],
+      "@dusk/core/env": [
+        "./packages/core/src/env.ts"
+      ],
+      "@dusk/core/credentials-file": [
+        "./packages/core/src/credentials-file.ts"
+      ],
+      "@dusk/og": [
+        "./packages/og/src/index.ts"
+      ],
+      "@dusk/og/e2ee": [
+        "./packages/og/src/e2ee.ts"
+      ],
+      "@dusk/og/sealed": [
+        "./packages/og/src/sealed.ts"
+      ],
+      "@dusk/arkiv": [
+        "./packages/arkiv/src/index.ts"
+      ],
+      "@dusk/swarm": [
+        "./packages/swarm/src/index.ts"
+      ],
+      "@dusk/escrow": [
+        "./packages/escrow/src/index.ts"
+      ],
+      "@dusk/crypto": [
+        "./packages/crypto/src/index.ts"
+      ],
+      "@dusk/buyer/verify": [
+        "./packages/buyer/src/verify.ts"
+      ],
+      "@dusk/buyer": [
+        "./packages/buyer/src/index.ts"
+      ],
+      "@dusk/ens": [
+        "./packages/ens/src/index.ts"
+      ],
+      "@dusk/signer": [
+        "./packages/signer/src/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "packages/*/src/**/*.ts",
+    "packages/*/test/**/*.ts",
+    "worker/src/**/*.ts",
+    "worker/test/**/*.ts",
+    "scripts/**/*.ts",
+    "mcp/src/**/*.ts",
+    "mcp/test/**/*.ts"
+  ]
+}

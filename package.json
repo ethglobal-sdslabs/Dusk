@@ -1,0 +1,27 @@
+{
+  "name": "dusk",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Dusk — the market for compute that expires tonight.",
+  "scripts": {
+    "test": "(export PATH=\"$HOME/.foundry/bin:$PATH\"; command -v forge >/dev/null && cd contracts && forge build --silent || true) && vitest run --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@arkiv-network/sdk": "1.0.1",
+    "@ethereumjs/block": "^10.1.3",
+    "@ethereumjs/common": "^10.1.3",
+    "@ethereumjs/util": "^10.1.3",
+    "@ethereumjs/vm": "^10.1.3",
+    "@types/node": "^26.6.6",
+    "dotenv": "^17.2.3",
+    "happy-dom": "21.0.4",
+    "solc": "0.8.24",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "viem": "^2.57.13",
+    "vitest": "^3.2.4"
+  },
+  "packageManager": "pnpm@12.16.1+sha512.091d1dee7927575661b25dab3c2ae31cafc1c54d6b71ed6a6600cf0c1cb10434a447eae14015f1b23e2e6bedeed79df94a932e2164d2832280dce3fb32f656d1"
+}
