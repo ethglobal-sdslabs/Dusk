@@ -1,0 +1,19 @@
+{
+  "name": "@dusk/og",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./e2ee": "./src/e2ee.ts",
+    "./sealed": "./src/sealed.ts"
+  },
+  "dependencies": {
+    "@dusk/core": "workspace:*",
+    "viem": "^2.38.2",
+    "@noble/ciphers": "1.3.0",
+    "@noble/curves": "1.9.7",
+    "@noble/hashes": "1.8.0"
+  }
+}
