@@ -1,0 +1,17 @@
+{
+  "name": "@dusk/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "comment:exports": "`.` is browser-safe and is what @dusk/arkiv, the worker loop and three pages import. `./env` and `./credentials-file` read config.json off the disk through node:fs, so they are subpaths rather than index exports — the same split @dusk/worker makes for ./loop. A Node entry point imports './env' right after 'dotenv/config'; nothing else may import either.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./env": "./src/env.ts",
+    "./credentials-file": "./src/credentials-file.ts"
+  },
+  "dependencies": {
+    "@arkiv-network/sdk": "1.0.1",
+    "viem": "^2.38.2"
+  }
+}
