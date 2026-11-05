@@ -7,7 +7,8 @@
   "scripts": {
     "test": "(export PATH=\"$HOME/.foundry/bin:$PATH\"; command -v forge >/dev/null && cd contracts && forge build --silent || true) && vitest run --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit",
-    "probe:og": "tsx scripts/probe-og.ts"
+    "probe:og": "tsx scripts/probe-og.ts",
+    "probe:arkiv": "tsx scripts/probe-arkiv.ts"
   },
   "devDependencies": {
     "@arkiv-network/sdk": "1.0.1",
