@@ -10,7 +10,8 @@
     "probe:og": "tsx scripts/probe-og.ts",
     "probe:arkiv": "tsx scripts/probe-arkiv.ts",
     "probe:swarm": "tsx scripts/probe-swarm.ts",
-    "worker": "tsx worker/src/main.ts"
+    "worker": "tsx worker/src/main.ts",
+    "post-job": "tsx scripts/post-job.ts"
   },
   "devDependencies": {
     "@arkiv-network/sdk": "1.0.1",
