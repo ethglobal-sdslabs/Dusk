@@ -1,0 +1,25 @@
+{
+  "name": "@dusk/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/main.ts",
+  "comment:exports": "`./loop` and `./payout` are subpaths because `.` is main.ts, which reads .env, is Node-only and starts a worker on import. /earn composes the same loop in a browser tab, so it needs the two modules that have no Node in them and must not touch the third. Task A1 verified loop.ts imports nothing Node-only; this map is what stops that from silently regressing.",
+  "exports": {
+    ".": "./src/main.ts",
+    "./loop": "./src/loop.ts",
+    "./payout": "./src/payout.ts",
+    "./produce-image": "./src/produce-image.ts",
+    "./budget": "./src/budget.ts"
+  },
+  "dependencies": {
+    "@dusk/arkiv": "workspace:*",
+    "@dusk/core": "workspace:*",
+    "@dusk/crypto": "workspace:*",
+    "@dusk/ens": "workspace:*",
+    "@dusk/escrow": "workspace:*",
+    "@dusk/og": "workspace:*",
+    "@dusk/swarm": "workspace:*",
+    "viem": "^2.38.2"
+  }
+}
