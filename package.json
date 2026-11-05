@@ -9,7 +9,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit",
     "probe:og": "tsx scripts/probe-og.ts",
     "probe:arkiv": "tsx scripts/probe-arkiv.ts",
-    "probe:swarm": "tsx scripts/probe-swarm.ts"
+    "probe:swarm": "tsx scripts/probe-swarm.ts",
+    "worker": "tsx worker/src/main.ts"
   },
   "devDependencies": {
     "@arkiv-network/sdk": "1.0.1",
