@@ -1,0 +1,16 @@
+{
+  "name": "@dusk/arkiv",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@dusk/core": "workspace:*",
+    "@dusk/signer": "workspace:*",
+    "@arkiv-network/sdk": "1.0.1",
+    "viem": "^2.38.2"
+  }
+}
