@@ -1,0 +1,47 @@
+{
+  "_comment": "Shared by packages/ens/test/label-policy.test.ts and contracts/test/fork/DuskIdentityController.t.sol so the TS and on-chain label rules cannot drift. Lowercase only: the on-chain rule never sees uppercase because the UI canonicalizes first.",
+  "valid": [
+    "abc",
+    "a-1",
+    "alice",
+    "ashura",
+    "0g-holder",
+    "abcdefghijabcdefghijabcdefghijab",
+    "x-n",
+    "xna",
+    "123",
+    "a-b-c",
+    "gpu4u"
+  ],
+  "invalid": [
+    "ab",
+    "a",
+    "",
+    "-ab",
+    "ab-",
+    "a--b",
+    "xn-abc",
+    "xn--abc",
+    "al.ce",
+    "al ce",
+    "al_ce",
+    "alice!",
+    "abcdefghijabcdefghijabcdefghijabc",
+    "аlice",
+    "ali​ce",
+    "a/b",
+    "a\\b",
+    "café"
+  ],
+  "reserved": [
+    "admin",
+    "support",
+    "security",
+    "www",
+    "api",
+    "root",
+    "dusk",
+    "official",
+    "verification"
+  ]
+}
