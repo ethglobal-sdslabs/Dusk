@@ -1,0 +1,17 @@
+{
+  "name": "@dusk/proxy",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/main.ts",
+  "scripts": {
+    "start": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@dusk/arkiv": "workspace:*",
+    "@dusk/buyer": "workspace:*",
+    "@dusk/core": "workspace:*",
+    "@dusk/mcp": "workspace:*",
+    "viem": "^2.38.2"
+  }
+}
