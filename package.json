@@ -25,6 +25,7 @@
     "deploy:escrow": "tsx scripts/deploy-escrow.ts",
     "reclaim": "tsx scripts/reclaim-escrow.ts",
     "demo": "tsx scripts/demo-e2e.ts",
+    "demo:split": "tsx scripts/demo-split.ts",
     "demo:recovery": "tsx scripts/demo-recovery.ts",
     "demo:refund": "tsx scripts/demo-refund.ts",
     "probe:browser": "tsx scripts/probe-browser.ts",
