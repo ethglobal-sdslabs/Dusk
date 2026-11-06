@@ -4,7 +4,10 @@ pragma solidity ^0.8.24;
 import {DuskIdentityController} from "./DuskIdentityController.sol";
 
 contract DuskReputation {
-    uint32 public constant SCORE_POLICY_VERSION = 1;
+    // Policy v2 (canary scoring, packages/core/src/canary-score.ts): one finding per job,
+    // worst wins. Kinds: 1 empty/no-delivery (-20), 2 illegal (-50), 3 late (-10),
+    // 4 delivered (+10). Score = clamp(100 + 10*passed - 10*late - 20*empty - 50*illegal).
+    uint32 public constant SCORE_POLICY_VERSION = 2;
     uint256 public constant MAX_BATCH = 20;
     uint16 public constant AUTOMATIC_REASON = 20;
 
@@ -20,6 +23,8 @@ contract DuskReputation {
         uint32 rejectedJobs;
         uint32 badAnswers;
         uint32 illegal;
+        uint32 late;
+        uint32 passed;
         uint32 policyVersion;
         uint64 evaluatedAt;
         uint64 galileoBlock;
@@ -43,6 +48,8 @@ contract DuskReputation {
         uint32 resolvedJobs;
         uint32 badAnswers;
         uint32 illegal;
+        uint32 late;
+        uint32 passed;
         bytes32 evidenceHash;
         bytes32 namehash;
         bytes32 sourceContextHash;
@@ -68,6 +75,8 @@ contract DuskReputation {
     mapping(address => mapping(bytes32 => uint8)) private _findingFlags;
     mapping(address => uint32) public badAnswersOf;
     mapping(address => uint32) public illegalOf;
+    mapping(address => uint32) public lateOf;
+    mapping(address => uint32) public passedOf;
     mapping(address => uint64) private _lastAutomaticBan;
     mapping(address => uint64) private _findingsAtLastBan;
 
@@ -155,17 +164,12 @@ contract DuskReputation {
         if (e.findings.length > 200) revert InvalidEvaluation();
         for (uint256 i; i < e.findings.length; ++i) {
             Finding calldata finding = e.findings[i];
-            if (finding.job == bytes32(0) || (finding.kind != 1 && finding.kind != 2)) revert InvalidEvaluation();
-            uint8 bit = finding.kind == 1 ? 1 : 2;
-            uint8 flags = _findingFlags[e.wallet][finding.job];
-            if ((flags & bit) != 0 || (flags & (bit << 2)) != 0) continue;
-            _findingFlags[e.wallet][finding.job] = flags | bit;
-            if (finding.kind == 1) ++badAnswersOf[e.wallet]; else ++illegalOf[e.wallet];
-            emit FindingRecorded(e.wallet, finding.job, finding.kind, e.evidenceHash);
+            if (finding.job == bytes32(0) || finding.kind < 1 || finding.kind > 4) revert InvalidEvaluation();
+            if (_applyFinding(e.wallet, finding.job, finding.kind)) emit FindingRecorded(e.wallet, finding.job, finding.kind, e.evidenceHash);
         }
-        if (e.badAnswers != badAnswersOf[e.wallet] || e.illegal != illegalOf[e.wallet]) revert InvalidEvaluation();
-        uint256 penalty = uint256(e.badAnswers) * 10 + uint256(e.illegal) * 50;
-        if (e.score != (penalty >= 100 ? 0 : 100 - penalty)) revert InvalidEvaluation();
+        if (e.badAnswers != badAnswersOf[e.wallet] || e.illegal != illegalOf[e.wallet] ||
+            e.late != lateOf[e.wallet] || e.passed != passedOf[e.wallet]) revert InvalidEvaluation();
+        if (e.score != _score(e.badAnswers, e.illegal, e.late, e.passed)) revert InvalidEvaluation();
         Reputation storage previous = _reputation[e.wallet];
         if (e.evaluatedAt <= previous.evaluatedAt || e.galileoBlock < previous.galileoBlock || e.arkivBlock < previous.arkivBlock) revert StaleEvaluation();
         if (uint256(e.settledJobs) + e.rejectedJobs > type(uint32).max) revert InvalidEvaluation();
@@ -174,7 +178,7 @@ contract DuskReputation {
     function _enforce(Evaluation calldata e, DuskIdentityController.MembershipStatus membership, uint64 sequence, uint32 resolved) private returns (bool banned) {
         uint64 moderationSequence;
         (banned, moderationSequence,,) = CONTROLLER.banOf(e.wallet);
-        uint64 findingCount = uint64(e.badAnswers) + e.illegal;
+        uint64 findingCount = uint64(e.badAnswers) + e.illegal + e.late;
         if (!banned && _lastAutomaticBan[e.wallet] != 0 && moderationSequence > _lastAutomaticBan[e.wallet] && findingCount <= _findingsAtLastBan[e.wallet]) return false;
         if (!banned && e.score < revokeBelow && resolved >= minimumResolved) {
             bytes32 decision = keccak256(abi.encode(block.chainid, address(this), policyEpoch, e.wallet, e.generation, sequence, e.evidenceHash));
@@ -201,7 +205,7 @@ contract DuskReputation {
         r.score = e.score; r.standing = standing; r.policyVersion = e.policyVersion; r.policyEpoch = policyEpoch;
         r.generation = e.generation; r.sequence = sequence; r.evaluatedAt = e.evaluatedAt; r.publishedAtBlock = uint64(block.number);
         r.galileoBlock = e.galileoBlock; r.arkivBlock = e.arkivBlock; r.resolvedJobs = resolved;
-        r.badAnswers = e.badAnswers; r.illegal = e.illegal; r.evidenceHash = e.evidenceHash;
+        r.badAnswers = e.badAnswers; r.illegal = e.illegal; r.late = e.late; r.passed = e.passed; r.evidenceHash = e.evidenceHash;
         r.namehash = keccak256(abi.encodePacked(PARENT_NODE, keccak256(bytes(label))));
         r.sourceContextHash = sourceContextHash;
         r.evidenceRef = e.evidenceRef;
@@ -214,23 +218,60 @@ contract DuskReputation {
         for (uint256 i; i < jobs.length; ++i) flags[i] = _findingFlags[wallet][jobs[i]];
     }
 
-    function evaluationState(address wallet, bytes32[] calldata jobs) external view returns (uint32 badAnswers, uint32 illegal, uint8[] memory flags) {
+    function evaluationState(address wallet, bytes32[] calldata jobs) external view returns (uint32 badAnswers, uint32 illegal, uint32 late, uint32 passed, uint8[] memory flags) {
         if (jobs.length > 200) revert InvalidEvaluation();
         flags = new uint8[](jobs.length);
         for (uint256 i; i < jobs.length; ++i) flags[i] = _findingFlags[wallet][jobs[i]];
-        return (badAnswersOf[wallet], illegalOf[wallet], flags);
+        return (badAnswersOf[wallet], illegalOf[wallet], lateOf[wallet], passedOf[wallet], flags);
     }
 
     function dismissFinding(address wallet, bytes32 job, uint8 kind, bytes32 decisionId) external onlyCompany {
-        if (wallet == address(0) || job == bytes32(0) || (kind != 1 && kind != 2) || decisionId == bytes32(0)) revert InvalidEvaluation();
-        uint8 bit = kind == 1 ? 1 : 2;
+        if (wallet == address(0) || job == bytes32(0) || kind < 1 || kind > 4 || decisionId == bytes32(0)) revert InvalidEvaluation();
+        uint8 bit = uint8(1 << (kind - 1));
         uint8 flags = _findingFlags[wallet][job];
-        if ((flags & (bit << 2)) != 0) revert StaleEvaluation();
-        if ((flags & bit) != 0) {
-            if (kind == 1) --badAnswersOf[wallet]; else --illegalOf[wallet];
-        }
-        _findingFlags[wallet][job] = (flags & ~bit) | (bit << 2);
+        if ((flags & (bit << 4)) != 0) revert StaleEvaluation();
+        if ((flags & bit) != 0) _adjust(wallet, kind, false);
+        _findingFlags[wallet][job] = (flags & ~bit) | (bit << 4);
         emit FindingDismissed(wallet, job, kind, decisionId, ++policyEpoch);
+    }
+
+    /// One finding per job, worst wins (illegal > empty > late > pass) — the same rule as
+    /// applyFinding in packages/core/src/canary-score.ts. Flags: kind k is bit 1<<(k-1),
+    /// dismissed is that bit << 4. A dismissed or already-recorded kind is ignored; so is
+    /// one outranked by a finding the job already has. A worse finding clears the job's
+    /// lesser ones, taking back their points. Returns whether anything changed.
+    function _applyFinding(address wallet, bytes32 job, uint8 kind) private returns (bool) {
+        uint8 flags = _findingFlags[wallet][job];
+        uint8 bit = uint8(1 << (kind - 1));
+        if ((flags & (bit << 4)) != 0 || (flags & bit) != 0) return false;
+        uint8 rank = _rank(kind);
+        for (uint8 k = 1; k <= 4; ++k) {
+            uint8 b = uint8(1 << (k - 1));
+            if ((flags & b) != 0 && _rank(k) > rank) return false;
+        }
+        for (uint8 k = 1; k <= 4; ++k) {
+            uint8 b = uint8(1 << (k - 1));
+            if ((flags & b) != 0 && _rank(k) < rank) { flags &= ~b; _adjust(wallet, k, false); }
+        }
+        _findingFlags[wallet][job] = flags | bit;
+        _adjust(wallet, kind, true);
+        return true;
+    }
+
+    function _rank(uint8 kind) private pure returns (uint8) {
+        return kind == 2 ? 4 : kind == 1 ? 3 : kind == 3 ? 2 : 1;
+    }
+
+    function _adjust(address wallet, uint8 kind, bool up) private {
+        if (kind == 1) { if (up) ++badAnswersOf[wallet]; else --badAnswersOf[wallet]; }
+        else if (kind == 2) { if (up) ++illegalOf[wallet]; else --illegalOf[wallet]; }
+        else if (kind == 3) { if (up) ++lateOf[wallet]; else --lateOf[wallet]; }
+        else { if (up) ++passedOf[wallet]; else --passedOf[wallet]; }
+    }
+
+    function _score(uint32 empty, uint32 illegal, uint32 late, uint32 passed) private pure returns (uint16) {
+        int256 s = 100 + 10 * int256(uint256(passed)) - 10 * int256(uint256(late)) - 20 * int256(uint256(empty)) - 50 * int256(uint256(illegal));
+        return s <= 0 ? 0 : s >= 100 ? 100 : uint16(uint256(s));
     }
 
     function configureWorkflow(address forwarder_, address owner_, bytes32 id_) external onlyCompany {

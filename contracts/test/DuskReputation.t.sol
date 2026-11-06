@@ -66,11 +66,18 @@ contract DuskReputationTest is Test {
         vm.stopPrank();
     }
 
+    // Policy v2: a late canary is exactly -10, so a score in steps of 10 is that many late findings.
     function _evaluation(address wallet, uint16 score, uint32 jobs) internal view returns (DuskReputation.Evaluation memory e) {
         DuskReputation.Finding[] memory findings = new DuskReputation.Finding[]((100 - score) / 10);
-        for (uint256 i; i < findings.length; ++i) findings[i] = DuskReputation.Finding(keccak256(abi.encode(wallet, i)), 1);
-        e = DuskReputation.Evaluation(wallet, 1, score, jobs, 0, (100 - score) / 10, 0, 1,
+        for (uint256 i; i < findings.length; ++i) findings[i] = DuskReputation.Finding(keccak256(abi.encode(wallet, i)), 3);
+        e = DuskReputation.Evaluation(wallet, 1, score, jobs, 0, 0, 0, (100 - score) / 10, 0, 2,
             uint64(block.timestamp), 100, 200, keccak256(abi.encode(wallet, score, jobs)), keccak256("public Swarm evidence"), findings);
+    }
+    function _with(address wallet, uint32 jobs, uint8[] memory kinds, uint32 offset) internal view returns (DuskReputation.Evaluation memory e) {
+        DuskReputation.Finding[] memory findings = new DuskReputation.Finding[](kinds.length);
+        for (uint256 i; i < kinds.length; ++i) findings[i] = DuskReputation.Finding(keccak256(abi.encode(wallet, "job", i + offset)), kinds[i]);
+        e = DuskReputation.Evaluation(wallet, 1, 0, jobs, 0, 0, 0, 0, 0, 2,
+            uint64(block.timestamp), 100, 200, keccak256(abi.encode(wallet, jobs, offset)), keccak256("public Swarm evidence"), findings);
     }
     function _metadata() internal view returns (bytes memory) { return abi.encodePacked(workflowId, bytes10("dusk-rep"), workflowOwner, bytes2(0)); }
     function _report(DuskReputation.Evaluation[] memory list) internal view returns (bytes memory) {
@@ -168,8 +175,8 @@ contract DuskReputationTest is Test {
         DuskReputation.Evaluation memory bad = _evaluation(alice, 40, 3);
         bad.evaluatedAt += 100; _deliver(bad);
         vm.warp(block.timestamp + 2 hours); _deliver(bad);
-        bad.evaluatedAt = uint64(block.timestamp); bad.badAnswers = 0; _deliver(bad);
-        bad.badAnswers = 6; bad.generation = 2; _deliver(bad);
+        bad.evaluatedAt = uint64(block.timestamp); bad.late = 0; _deliver(bad);
+        bad.late = 6; bad.generation = 2; _deliver(bad);
         bad.generation = 1; bad.galileoBlock = 99; _deliver(bad);
         bad.galileoBlock = 100; bad.arkivBlock = 199; _deliver(bad);
         assertEq(reputation.reputationOf(alice).sequence, original);
@@ -233,7 +240,7 @@ contract DuskReputationTest is Test {
 
     function test_expiredOrDeletedEvidenceCannotErasePublishedFindings() public {
         _deliver(_evaluation(alice, 50, 3));
-        assertEq(reputation.badAnswersOf(alice), 5);
+        assertEq(reputation.lateOf(alice), 5);
         vm.warp(block.timestamp + 4 hours);
         _deliver(_evaluation(alice, 100, 3));
         assertEq(reputation.reputationOf(alice).score, 50, "forgetting records cannot heal the score");
@@ -241,17 +248,17 @@ contract DuskReputationTest is Test {
         refreshed.findings = new DuskReputation.Finding[](0);
         _deliver(refreshed);
         assertEq(reputation.reputationOf(alice).evaluatedAt, block.timestamp);
-        assertEq(reputation.badAnswersOf(alice), 5, "repeated evidence is counted once");
+        assertEq(reputation.lateOf(alice), 5, "repeated evidence is counted once");
     }
 
     function test_companyCanDismissAFindingAndItCannotBeReintroducedByTheWorker() public {
         _deliver(_evaluation(alice, 50, 3));
         bytes32 job = keccak256(abi.encode(alice, uint256(4)));
-        vm.prank(company); reputation.dismissFinding(alice, job, 1, keccak256("review"));
-        assertEq(reputation.badAnswersOf(alice), 4);
+        vm.prank(company); reputation.dismissFinding(alice, job, 3, keccak256("review"));
+        assertEq(reputation.lateOf(alice), 4);
         vm.warp(block.timestamp + 4 hours);
         _deliver(_evaluation(alice, 50, 3));
-        assertEq(reputation.badAnswersOf(alice), 4);
+        assertEq(reputation.lateOf(alice), 4);
         _deliver(_evaluation(alice, 60, 3));
         assertEq(reputation.reputationOf(alice).score, 60);
     }
@@ -265,5 +272,84 @@ contract DuskReputationTest is Test {
         vm.warp(block.timestamp + 4 hours);
         _deliver(_evaluation(alice, 30, 4));
         assertTrue(controller.isBanned(alice), "new authenticated misconduct may trigger a new decision");
+    }
+
+    // ───────────────────────────────────────────── policy v2: canary scoring
+
+    function _kinds(uint8 a) internal pure returns (uint8[] memory k) { k = new uint8[](1); k[0] = a; }
+    function _kinds(uint8 a, uint8 b) internal pure returns (uint8[] memory k) { k = new uint8[](2); k[0] = a; k[1] = b; }
+    function _kinds(uint8 a, uint8 b, uint8 c, uint8 d) internal pure returns (uint8[] memory k) {
+        k = new uint8[](4); k[0] = a; k[1] = b; k[2] = c; k[3] = d;
+    }
+
+    function test_v2_scoresEachKindAndStaysWithin0To100() public {
+        // empty -20, illegal -50, late -10, pass +10, all on different jobs: 100 - 70 = 30
+        DuskReputation.Evaluation memory e = _with(alice, 0, _kinds(1, 2, 3, 4), 0);
+        e.badAnswers = 1; e.illegal = 1; e.late = 1; e.passed = 1; e.score = 30;
+        _deliver(e);
+        assertEq(reputation.reputationOf(alice).score, 30);
+        assertEq(reputation.reputationOf(alice).late, 1);
+        assertEq(reputation.reputationOf(alice).passed, 1);
+        // passes never lift a score above 100
+        DuskReputation.Evaluation memory b = _with(bob, 0, _kinds(4, 4), 10);
+        b.findings[1].job = keccak256("another job");
+        b.passed = 2; b.score = 100;
+        _deliver(b);
+        assertEq(reputation.reputationOf(bob).score, 100);
+    }
+
+    function test_v2_refusesTheOldFormulaAndUnknownKinds() public {
+        DuskReputation.Evaluation memory e = _with(alice, 0, _kinds(1), 0);
+        e.badAnswers = 1; e.score = 90; // v1 said -10; v2 says -20
+        _deliver(e);
+        assertEq(reputation.reputationOf(alice).sequence, 0, "a v1 score is refused");
+        DuskReputation.Evaluation memory k = _with(alice, 0, _kinds(5), 0);
+        k.score = 100;
+        _deliver(k);
+        assertEq(reputation.reputationOf(alice).sequence, 0, "kind 5 is refused");
+    }
+
+    function test_v2_oneFindingPerJobTheWorstWins() public {
+        // pass then late on the same job: late replaces pass (no +10 and -10 for one job)
+        DuskReputation.Evaluation memory e = _with(alice, 0, _kinds(4, 3), 0);
+        e.findings[1].job = e.findings[0].job;
+        e.late = 1; e.score = 90;
+        _deliver(e);
+        assertEq(reputation.passedOf(alice), 0);
+        assertEq(reputation.lateOf(alice), 1);
+        // a lesser finding never replaces a worse one later
+        vm.warp(block.timestamp + 1 hours);
+        DuskReputation.Evaluation memory later = _with(alice, 0, _kinds(4), 0);
+        later.late = 1; later.score = 90;
+        _deliver(later);
+        assertEq(reputation.lateOf(alice), 1);
+        assertEq(reputation.passedOf(alice), 0);
+        assertEq(reputation.reputationOf(alice).score, 90);
+    }
+
+    function test_v2_dismissedFindingsStayDismissedForEveryKind() public {
+        DuskReputation.Evaluation memory e = _with(alice, 0, _kinds(1), 0);
+        e.badAnswers = 1; e.score = 80;
+        _deliver(e);
+        vm.prank(company); reputation.dismissFinding(alice, e.findings[0].job, 1, keccak256("appeal"));
+        assertEq(reputation.badAnswersOf(alice), 0);
+        vm.warp(block.timestamp + 1 hours);
+        DuskReputation.Evaluation memory again = _with(alice, 0, _kinds(1), 0);
+        again.score = 100;
+        _deliver(again);
+        assertEq(reputation.badAnswersOf(alice), 0, "a dismissed finding is not re-counted");
+        assertEq(reputation.reputationOf(alice).score, 100);
+        vm.prank(company); vm.expectRevert(DuskReputation.InvalidEvaluation.selector);
+        reputation.dismissFinding(alice, e.findings[0].job, 5, keccak256("no such kind"));
+    }
+
+    function test_v2_evaluationStateReportsAllFourCounts() public {
+        DuskReputation.Evaluation memory e = _with(alice, 0, _kinds(1, 2, 3, 4), 0);
+        e.badAnswers = 1; e.illegal = 1; e.late = 1; e.passed = 1; e.score = 30;
+        _deliver(e);
+        bytes32[] memory jobs = new bytes32[](1); jobs[0] = e.findings[2].job;
+        (uint32 bad, uint32 illegal, uint32 late, uint32 passed, uint8[] memory flags) = reputation.evaluationState(alice, jobs);
+        assertEq(bad, 1); assertEq(illegal, 1); assertEq(late, 1); assertEq(passed, 1);
+        assertEq(flags[0], 4, "late is bit 1<<(3-1)");
     }
 }
