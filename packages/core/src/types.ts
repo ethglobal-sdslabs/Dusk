@@ -11,6 +11,8 @@ export type Verification = {
   worker: Address
   result: 'pass' | 'bad' | 'illegal'
   check: string
+  /** Canary only: claim to delivered receipt, from Arkiv's engine-stamped blocks. */
+  latencyMs?: number
 }
 
 export type JobStatus = 'open' | 'claimed' | 'delivered' | 'settled' | 'expired'

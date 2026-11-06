@@ -76,6 +76,7 @@ export const VerificationSchema = defineSchema(kindTag('verification'), {
   worker: addr().indexed(),
   result: str().indexed(),
   check: str(),
+  latency_ms: u64().optional(),
 })
 
 export const IdentitySchema = defineSchema(kindTag('identity_v1'), {

@@ -87,6 +87,7 @@ const FIELDS: Record<Kind, Record<string, FieldSpec>> = {
     worker: { attr: 'worker', type: 'addr' },
     result: { attr: 'result', type: 'str' },
     check: { attr: 'check', type: 'str' },
+    latencyMs: { attr: 'latency_ms', type: 'u64', optional: true },
   },
   identity_v1: {
     wallet: { attr: 'wallet', type: 'addr' },
