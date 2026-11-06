@@ -1,4 +1,5 @@
 import type { Receipt, Verification, WorkerAd } from '@dusk/core'
+import { applyFinding, canaryScore, FINDING, lateThresholdMs, newFindingState, verdictFinding } from '@dusk/core'
 import type { Address } from 'viem'
 import type { PublishedReputationResult, VerifiedIdentity } from '@dusk/ens'
 import type { ChainEvent } from './past'
@@ -42,25 +43,20 @@ export type SellerRecord = {
   reputationEvidenceRef?: string
 }
 
-/**
- * Canary scoring. A seller starts at 100 (and never goes above it):
- * - illegal (lying receipt, output not what was committed): -50
- * - empty answer, or claimed the canary and never delivered: -20
- * - delivered: +10, or -10 instead when late
- * Late is relative: over LATE_FACTOR x the market's median canary latency, once there
- * are LATE_MIN_SAMPLES to compare against, and never under LATE_FLOOR_MS. What the answer
- * says is not judged.
- */
-export const ILLEGAL_PENALTY = 50
-export const EMPTY_ANSWER_PENALTY = 20
-export const LATE_PENALTY = 10
-export const PASS_BONUS = 10
-export const LATE_FACTOR = 2
-export const LATE_MIN_SAMPLES = 3
-export const LATE_FLOOR_MS = 10_000
-const EMPTY_CHECKS = new Set(['empty-answer', 'no-delivery'])
+// Canary scoring rules live in @dusk/core so this page, the reputation workflow and
+// DuskReputation.sol cannot disagree. Re-exported for the page and older imports.
+export {
+  EMPTY_ANSWER_PENALTY,
+  ILLEGAL_PENALTY,
+  LATE_FACTOR,
+  LATE_FLOOR_MS,
+  LATE_MIN_SAMPLES,
+  LATE_PENALTY,
+  lateThresholdMs,
+  PASS_BONUS,
+} from '@dusk/core'
 /** @deprecated kept for older imports; an empty answer now costs EMPTY_ANSWER_PENALTY. */
-export const BAD_ANSWER_PENALTY = EMPTY_ANSWER_PENALTY
+export { EMPTY_ANSWER_PENALTY as BAD_ANSWER_PENALTY } from '@dusk/core'
 export const REVIEW_BELOW = 50
 
 const sameHash = (a: string | undefined, b: string | undefined) =>
@@ -128,36 +124,28 @@ export function sellerRecords(
     const ad = ads.find((a) => a.payout && key(a.payout) === key(acc.worker))
     const resolved = collected + challenged
 
-    // One canary verdict per job. A no-delivery has no commit behind it (the seller never
-    // delivered), so it is the one verdict counted without one.
-    const verdicts = new Map<string, Verification>()
+    // One finding per job, worst wins (`applyFinding`, the contract's own rule). A
+    // no-delivery has no commit behind it — the seller never delivered — so it is the
+    // one verdict counted without one.
+    const state = newFindingState()
     for (const v of trustedVerdicts) {
       const job = key(v.escrowId)
       if (key(v.worker) !== key(acc.worker)) continue
       if (!acc.jobs.has(job) && v.check !== 'no-delivery') continue
-      const seen = verdicts.get(job)
-      if (!seen || rank(v) > rank(seen)) verdicts.set(job, v)
+      const kind = verdictFinding(v, lateAfterMs)
+      if (kind !== null) applyFinding(state, job, kind)
     }
-    const flagged = new Set([...verdicts].filter(([, v]) => v.result === 'illegal').map(([job]) => job))
+    // A receipt this seller signed that contradicts its own commit is illegal too.
     for (const r of mine) {
       if (!r.owner || key(r.owner) !== key(acc.worker)) continue
       const commit = committedBy.get(key(r.escrowId))
       if (!commit) continue
       if (key(commit.party) !== key(acc.worker) || (commit.outputHash && !sameHash(commit.outputHash, r.outputHash))) {
-        flagged.add(key(r.escrowId))
+        applyFinding(state, key(r.escrowId), FINDING.illegal)
       }
     }
-    const empties = [...verdicts.values()].filter((v) => v.result === 'bad' && EMPTY_CHECKS.has(v.check))
-    const passes = [...verdicts.values()].filter((v) => v.result === 'pass')
-    const late = passes.filter((v) => isLate(v.latencyMs, lateAfterMs))
-    const badAnswers = empties.length
-    const illegal = flagged.size
-    const points =
-      -illegal * ILLEGAL_PENALTY -
-      badAnswers * EMPTY_ANSWER_PENALTY -
-      late.length * LATE_PENALTY +
-      (passes.length - late.length) * PASS_BONUS
-    const score = Math.min(100, Math.max(0, 100 + points))
+    const { empty: badAnswers, illegal, late, passed } = state.counts
+    const score = canaryScore(state.counts)
     return {
       worker: acc.worker,
       delivered: acc.jobs.size,
@@ -175,8 +163,8 @@ export function sellerRecords(
       livePricePer1kOut: ad ? ad.pricePer1kOut : null,
       badAnswers,
       illegal,
-      canaryPassed: passes.length,
-      canaryLate: late.length,
+      canaryPassed: passed + late,
+      canaryLate: late,
       score,
       banned: false,
       moderationStatus: 'unknown',
@@ -206,6 +194,8 @@ export function withPublishedReputation(record: SellerRecord, result: PublishedR
   const conflictsWithAppeal = published?.standing === 'banned' && record.moderationStatus === 'clear'
   if (result.status !== 'verified' || !published || conflictsWithAppeal) return { ...record, publishedReputationStatus: conflictsWithAppeal ? 'stale' : result.status }
   return { ...record, score: published.score, badAnswers: published.badAnswers, illegal: published.illegal,
+    ...(published.late !== undefined ? { canaryLate: published.late } : {}),
+    ...(published.passed !== undefined ? { canaryPassed: published.passed + (published.late ?? 0) } : {}),
     publishedReputationStatus: 'verified', publishedReputationSource: result.source, publishedReputationAt: published.evaluatedAt * 1000,
     officialStanding: published.standing === 'banned' && !record.banned ? undefined : published.standing,
     reputationEvidenceRef: published.evidenceRef.replace(/^0x/, '') }
@@ -246,23 +236,4 @@ export function marketReputation(records: readonly SellerRecord[]): MarketReputa
     delivered,
     challengeRate: resolved === 0 ? null : challenged / resolved,
   }
-}
-
-/** Higher wins when one job has several verdicts: the worst one stands. */
-function rank(v: Verification): number {
-  return v.result === 'illegal' ? 3 : v.result === 'bad' ? 2 : 1
-}
-
-/** LATE_FACTOR x the median latency of every delivered canary, or null without enough of them. */
-export function lateThresholdMs(verdicts: readonly Verification[]): number | null {
-  const byJob = new Map<string, number>()
-  for (const v of verdicts) {
-    if (v.result === 'pass' && v.latencyMs !== undefined && Number.isFinite(v.latencyMs)) byJob.set(v.escrowId.toLowerCase(), v.latencyMs)
-  }
-  if (byJob.size < LATE_MIN_SAMPLES) return null
-  return Math.max(LATE_FLOOR_MS, LATE_FACTOR * median([...byJob.values()])!)
-}
-
-function isLate(latencyMs: number | undefined, lateAfterMs: number | null): boolean {
-  return lateAfterMs !== null && latencyMs !== undefined && latencyMs > lateAfterMs
 }

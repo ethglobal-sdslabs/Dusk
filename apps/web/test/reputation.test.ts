@@ -213,10 +213,11 @@ describe('misconduct score', () => {
   })
 
   it('does not invent an on-chain ban from a low reputation score', () => {
+    // Two jobs: one finding per job counts, so two findings need two jobs.
     const r = sellerRecords(
-      { ...EMPTY, committed: [commit(1, A)] },
+      { ...EMPTY, committed: [commit(1, A), commit(2, A)] },
       [own({ ...receipt(1, A, 100), outputHash: OTHER })], [],
-      [verdict(1, A, 'bad')], [VERIFIER],
+      [verdict(2, A, 'bad')], [VERIFIER],
     )[0]!
     expect(r.score).toBeLessThan(REVIEW_BELOW)
     expect(r.banned).toBe(false)
@@ -304,5 +305,21 @@ describe('canary scoring — output and latency, not answer quality', () => {
       { ...EMPTY, committed: [commit(1, B), commit(2, B), commit(3, B), commit(4, A)] }, [], [], [...market, quick], [VERIFIER],
     )
     expect(records.find((r) => r.worker === A)!.canaryLate).toBe(0)
+  })
+})
+
+describe('one finding per job, as the contract counts it', () => {
+  const VERIFIER = `0x${'d4'.repeat(20)}` as Address
+  const HASH = `0x${'cd'.repeat(32)}` as Hex
+  it('charges only the worst finding when one job has several', () => {
+    const commit: ChainEvent = { ...ev(1, A, 1), outputHash: HASH }
+    const base = { id: 'v', owner: VERIFIER, jobId: 'j1', escrowId: id(1), worker: A }
+    const r = sellerRecords({ ...EMPTY, committed: [commit] }, [], [], [
+      { ...base, id: 'a', result: 'bad', check: 'empty-answer' },
+      { ...base, id: 'b', result: 'illegal', check: 'output-hash-mismatch' },
+    ], [VERIFIER])[0]!
+    expect(r.illegal).toBe(1)
+    expect(r.badAnswers).toBe(0)
+    expect(r.score).toBe(50)
   })
 })
