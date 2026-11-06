@@ -28,6 +28,7 @@
     "probe:ens": "tsx scripts/probe-ens.ts",
     "ens:deploy": "tsx scripts/deploy-ens.ts",
     "ens:register": "tsx scripts/ens-register.ts",
+    "ens:revoke": "tsx scripts/ens-revoke.ts",
     "mcp": "tsx mcp/src/main.ts"
   },
   "devDependencies": {
