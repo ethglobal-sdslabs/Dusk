@@ -14,6 +14,8 @@
     "probe:swarm": "tsx scripts/probe-swarm.ts",
     "probe:image": "tsx scripts/probe-image.ts",
     "probe:image-producer": "tsx scripts/probe-image-producer.ts",
+    "probe:tee": "tsx scripts/probe-tee.ts",
+    "probe:tee-e2ee": "tsx scripts/probe-tee-e2ee.ts",
     "build:escrow": "tsx scripts/build-escrow.ts",
     "worker": "tsx worker/src/main.ts",
     "post-job": "tsx scripts/post-job.ts",
