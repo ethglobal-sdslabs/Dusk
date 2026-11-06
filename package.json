@@ -7,6 +7,8 @@
   "scripts": {
     "test": "(export PATH=\"$HOME/.foundry/bin:$PATH\"; command -v forge >/dev/null && cd contracts && forge build --silent || true) && vitest run --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit",
+    "dev:web": "pnpm --filter web dev",
+    "build:web": "pnpm --filter web build",
     "probe:og": "tsx scripts/probe-og.ts",
     "probe:arkiv": "tsx scripts/probe-arkiv.ts",
     "probe:swarm": "tsx scripts/probe-swarm.ts",
