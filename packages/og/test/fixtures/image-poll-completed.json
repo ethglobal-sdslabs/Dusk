@@ -1,0 +1,32 @@
+{
+  "createdAt": "2026-11-06T02:54:38.298Z",
+  "data": {
+    "created": 1793933680,
+    "data": [
+      {
+        "b64_json": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABALDA4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVGC8aGi9jQjhCY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2P/wAARCAACAAIDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCGiiivKPcP/9k=",
+        "file_path": "/sgl-workspace/sglang/outputs/f677a7c7-8cb6-479f-af33-ba847c34dfac.jpg",
+        "resize": null,
+        "revised_prompt": "a lighthouse at dusk, watercolor",
+        "url": null
+      }
+    ],
+    "id": "f677a7c7-8cb6-479f-af33-ba847c34dfac",
+    "inference_time_s": 2.213186206998216,
+    "peak_memory_mb": 17778,
+    "usage": null
+  },
+  "jobId": "be0f9f8c-1f2d-45b7-a392-62d68fb1edd0",
+  "status": "completed",
+  "updatedAt": "2026-11-06T02:54:40.591Z",
+  "x_0g_trace": {
+    "billing": {
+      "currency": "usd",
+      "input_cost": "0",
+      "output_cost": "8800",
+      "total_cost": "8800"
+    },
+    "provider": "0x59E598DB6E8c63D7fEeB64a69De36510a221C762",
+    "request_id": "async-a221C762-be0f9f8c-1f2d-45b7-a392-62d68fb1edd0"
+  }
+}

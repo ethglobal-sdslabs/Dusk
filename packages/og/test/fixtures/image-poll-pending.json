@@ -1,0 +1,7 @@
+{
+  "_synthesized": "Not observed live: the 2026-11-06 probe completed on its first poll (t+8s). Built from the submit response's fields plus the completed poll's envelope keys.",
+  "createdAt": "2026-11-06T02:54:38.298Z",
+  "jobId": "be0f9f8c-1f2d-45b7-a392-62d68fb1edd0",
+  "status": "pending",
+  "updatedAt": "2026-11-06T02:54:38.298Z"
+}
