@@ -14,6 +14,7 @@
     "worker": "tsx worker/src/main.ts",
     "post-job": "tsx scripts/post-job.ts",
     "deploy:escrow": "tsx scripts/deploy-escrow.ts",
+    "reclaim": "tsx scripts/reclaim-escrow.ts",
     "demo": "tsx scripts/demo-e2e.ts",
     "demo:recovery": "tsx scripts/demo-recovery.ts",
     "demo:refund": "tsx scripts/demo-refund.ts",
