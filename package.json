@@ -12,6 +12,8 @@
     "probe:og": "tsx scripts/probe-og.ts",
     "probe:arkiv": "tsx scripts/probe-arkiv.ts",
     "probe:swarm": "tsx scripts/probe-swarm.ts",
+    "probe:image": "tsx scripts/probe-image.ts",
+    "probe:image-producer": "tsx scripts/probe-image-producer.ts",
     "build:escrow": "tsx scripts/build-escrow.ts",
     "worker": "tsx worker/src/main.ts",
     "post-job": "tsx scripts/post-job.ts",
