@@ -9,6 +9,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit",
     "dev:web": "pnpm --filter web dev",
     "build:web": "pnpm --filter web build",
+    "verify:bundle": "pnpm build:web && test -d apps/web/.next/static && ! grep -rqE '\\b(sk|mk)-[A-Za-z0-9_-]{16,}' apps/web/.next/static",
     "probe:og": "tsx scripts/probe-og.ts",
     "probe:arkiv": "tsx scripts/probe-arkiv.ts",
     "probe:swarm": "tsx scripts/probe-swarm.ts",
@@ -22,6 +23,7 @@
     "worker": "tsx worker/src/main.ts",
     "post-job": "tsx scripts/post-job.ts",
     "canary": "tsx scripts/canary.ts",
+    "canary:loop": "tsx scripts/canary.ts --every 4h",
     "deploy:escrow": "tsx scripts/deploy-escrow.ts",
     "reclaim": "tsx scripts/reclaim-escrow.ts",
     "demo": "tsx scripts/demo-e2e.ts",
@@ -40,6 +42,8 @@
     "propose:bans": "tsx scripts/propose-bans.ts",
     "reputation:deploy": "tsx scripts/deploy-reputation.ts",
     "reputation:prepare": "tsx scripts/prepare-reputation-workflow.ts",
+    "build:reputation": "pnpm --filter @dusk/automation build",
+    "test:reputation-runtime": "pnpm --filter @dusk/automation test:runtime",
     "mcp": "tsx mcp/src/main.ts"
   },
   "devDependencies": {
