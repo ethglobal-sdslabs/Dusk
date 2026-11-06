@@ -1,0 +1,5 @@
+export { DUSK_ESCROW_ABI } from './abi'
+export { createEscrowClient, EscrowReceiptTimeoutError, EscrowRevertError } from './client'
+export type { DuskEscrowClient, EscrowClientConfig } from './client'
+export { createEscrowHistory } from './history'
+export type { EscrowHistory, EscrowHistoryConfig, HistoryEvent, HistoryEventName } from './history'
