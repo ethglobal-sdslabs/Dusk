@@ -15,6 +15,7 @@
     "post-job": "tsx scripts/post-job.ts",
     "deploy:escrow": "tsx scripts/deploy-escrow.ts",
     "demo": "tsx scripts/demo-e2e.ts",
+    "demo:refund": "tsx scripts/demo-refund.ts",
     "query": "tsx scripts/query-arkiv.ts"
   },
   "devDependencies": {
