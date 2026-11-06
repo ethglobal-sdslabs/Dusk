@@ -3,7 +3,9 @@ import type { Address, Hex } from 'viem'
 import type { Receipt, Verification, WorkerAd } from '@dusk/core'
 import type { ChainEvent } from '../src/lib/past'
 import {
-  BAD_ANSWER_PENALTY,
+  EMPTY_ANSWER_PENALTY,
+  LATE_PENALTY,
+  PASS_BONUS,
   REVIEW_BELOW,
   ILLEGAL_PENALTY,
   marketReputation,
@@ -148,8 +150,9 @@ describe('misconduct score', () => {
   const HASH = `0x${'cd'.repeat(32)}` as Hex
   const OTHER = `0x${'ee'.repeat(32)}` as Hex
   const commit = (n: number, party: Address, outputHash: Hex = HASH): ChainEvent => ({ ...ev(n, party, n), outputHash })
-  const verdict = (n: number, worker: Address, result: Verification['result'], owner: Address = VERIFIER): Verification => ({
-    id: `v${n}-${result}`, owner, jobId: `j${n}`, escrowId: id(n), worker, result, check: result,
+  const CHECK = { pass: 'delivered', bad: 'empty-answer', illegal: 'output-hash-mismatch' } as const
+  const verdict = (n: number, worker: Address, result: Verification['result'], owner: Address = VERIFIER, over: Partial<Verification> = {}): Verification => ({
+    id: `v${n}-${result}`, owner, jobId: `j${n}`, escrowId: id(n), worker, result, check: CHECK[result], ...over,
   })
   const own = (r: Receipt): Receipt => ({ ...r, owner: r.worker })
 
@@ -159,7 +162,7 @@ describe('misconduct score', () => {
     expect(r.banned).toBe(false)
   })
 
-  it('deducts a few points for a bad canary answer and many for an illegal act', () => {
+  it('deducts 20 for an empty canary answer and 50 for an illegal act', () => {
     const r = sellerRecords(
       { ...EMPTY, committed: [commit(1, A), commit(2, A)] },
       [], [],
@@ -168,8 +171,9 @@ describe('misconduct score', () => {
     )[0]!
     expect(r.badAnswers).toBe(1)
     expect(r.illegal).toBe(1)
-    expect(r.score).toBe(100 - BAD_ANSWER_PENALTY - ILLEGAL_PENALTY)
-    expect(BAD_ANSWER_PENALTY).toBeLessThan(ILLEGAL_PENALTY)
+    expect(EMPTY_ANSWER_PENALTY).toBe(20)
+    expect(ILLEGAL_PENALTY).toBe(50)
+    expect(r.score).toBe(100 - 20 - 50)
   })
 
   it('ignores a verdict from anyone who is not a configured verifier', () => {
@@ -246,5 +250,59 @@ describe('on-chain moderation', () => {
     for (const value of [undefined, identity('unknown'), identity('banned', B)]) {
       expect(withModeration(record(), value).moderationStatus).toBe('unknown')
     }
+  })
+})
+
+describe('canary scoring — output and latency, not answer quality', () => {
+  const VERIFIER = `0x${'d4'.repeat(20)}` as Address
+  const HASH = `0x${'cd'.repeat(32)}` as Hex
+  const commit = (n: number, party: Address): ChainEvent => ({ ...ev(n, party, n), outputHash: HASH })
+  const v = (n: number, worker: Address, result: Verification['result'], check: string, latencyMs?: number): Verification => ({
+    id: `v${n}`, owner: VERIFIER, jobId: `j${n}`, escrowId: id(n), worker, result, check, ...(latencyMs !== undefined ? { latencyMs } : {}),
+  })
+  const score = (verdicts: Verification[], committed = verdicts.map((x) => Number(BigInt(x.escrowId)))) =>
+    sellerRecords({ ...EMPTY, committed: [...new Set(committed)].map((n) => commit(n, A)) }, [], [], verdicts, [VERIFIER])
+      .find((r) => r.worker === A)!
+
+  it('adds 10 for a delivered canary, but never above 100', () => {
+    expect(PASS_BONUS).toBe(10)
+    const r = score([v(1, A, 'illegal', 'output-hash-mismatch'), v(2, A, 'pass', 'delivered', 5_000)])
+    expect(r.score).toBe(100 - 50 + 10)
+    expect(score([v(1, A, 'pass', 'delivered', 5_000)]).score).toBe(100)
+  })
+
+  it('does not judge what the answer says — a legacy wrong-answer verdict costs nothing', () => {
+    expect(score([v(1, A, 'bad', 'wrong-answer')]).score).toBe(100)
+  })
+
+  // Claiming a canary and never delivering is the same failure as an empty answer.
+  it('deducts 20 for a canary the seller claimed and never delivered, even with no commit', () => {
+    const r = score([v(1, A, 'pass', 'delivered', 5_000), v(2, A, 'bad', 'no-delivery')], [1])
+    expect(r.score).toBe(100 + 10 - 20)
+  })
+
+  it('deducts 10 instead of adding 10 for a delivered canary over twice the market median latency', () => {
+    expect(LATE_PENALTY).toBe(10)
+    const market = [v(1, B, 'pass', 'delivered', 20_000), v(2, B, 'pass', 'delivered', 20_000), v(3, B, 'pass', 'delivered', 20_000)]
+    const slow = v(4, A, 'pass', 'delivered', 90_000)
+    const records = sellerRecords(
+      { ...EMPTY, committed: [commit(1, B), commit(2, B), commit(3, B), commit(4, A)] }, [], [], [...market, slow], [VERIFIER],
+    )
+    const a = records.find((r) => r.worker === A)!
+    expect(a.score).toBe(100 - 10)
+    expect(a.canaryLate).toBe(1)
+  })
+
+  it('does not call anything late until there are enough canaries to compare against', () => {
+    expect(score([v(1, A, 'pass', 'delivered', 90_000)]).score).toBe(100)
+  })
+
+  it('never calls a fast canary late, however much faster the market is', () => {
+    const market = [1, 2, 3].map((n) => v(n, B, 'pass', 'delivered', 1_000))
+    const quick = v(4, A, 'pass', 'delivered', 8_000)
+    const records = sellerRecords(
+      { ...EMPTY, committed: [commit(1, B), commit(2, B), commit(3, B), commit(4, A)] }, [], [], [...market, quick], [VERIFIER],
+    )
+    expect(records.find((r) => r.worker === A)!.canaryLate).toBe(0)
   })
 })

@@ -9,7 +9,7 @@ import { ScrollableTable } from '../../components/ScrollableTable'
 import { WalletName } from '../../components/WalletName'
 import { formatCount, formatWei } from '../../lib/market'
 import { historySources, readReputation } from '../../lib/past-read'
-import { BAD_ANSWER_PENALTY, ILLEGAL_PENALTY, marketReputation, MIN_RESOLVED, REVIEW_BELOW, standingOf, type SellerRecord, type Standing } from '../../lib/reputation'
+import { EMPTY_ANSWER_PENALTY, ILLEGAL_PENALTY, LATE_FACTOR, LATE_PENALTY, PASS_BONUS, marketReputation, MIN_RESOLVED, REVIEW_BELOW, standingOf, type SellerRecord, type Standing } from '../../lib/reputation'
 
 type Load = { state: 'reading' } | { state: 'error'; message: string } | { state: 'ready'; records: SellerRecord[]; readAt: number }
 
@@ -165,8 +165,10 @@ export default function ReputationPage() {
                   <li><span className="reputation-standing" data-standing="disputed">Disputed</span>Under 80%, or an official score below the revocation threshold.</li>
                 </ul>
                 <p className="meta">
-                  Every seller starts at 100. A bad answer to a canary job costs {BAD_ANSWER_PENALTY} points. Cheating
-                  costs {ILLEGAL_PENALTY}. Official scores come from company-authorized ENS checkpoints; users cannot edit them.
+                  Every seller starts at 100, and canary jobs test them every few minutes. Each delivered canary adds {PASS_BONUS} (up to 100);
+                  one delivered more than {LATE_FACTOR}× slower than the market&rsquo;s typical canary costs {LATE_PENALTY} instead. An empty
+                  answer, or a canary claimed and never delivered, costs {EMPTY_ANSWER_PENALTY}. Cheating costs {ILLEGAL_PENALTY}. What an answer
+                  says is not judged. Official scores come from company-authorized ENS checkpoints; users cannot edit them.
                   When decentralized enforcement is configured, the revoker contract removes membership below {REVIEW_BELOW} after at least {MIN_RESOLVED} resolved jobs.
                   Estimates shown without a verified checkpoint have no authority to revoke anyone.
                 </p>
