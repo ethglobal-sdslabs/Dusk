@@ -8,6 +8,7 @@ import { createEscrowClient, DUSK_ESCROW_ABI } from '@dusk/escrow'
 import { onChainServiceReader } from '@dusk/og/sealed'
 import { createSwarmStore, DEFAULT_DOWNLOAD_URL, DEFAULT_UPLOAD_URL } from '@dusk/swarm'
 import { judgeCommit } from '@dusk/buyer/verify'
+import { canaryEveryMs, runCanaryLoop } from './canary'
 
 const env = process.env as Record<string, string>
 const config = loadConfig(env)
@@ -32,6 +33,7 @@ const readService = onChainServiceReader({ rpc: config.og.teeProof.rpc, servingC
 const LOOKBACK_BLOCKS = BigInt(env['DUSK_VERIFIER_LOOKBACK_BLOCKS'] ?? '5000')
 const done = new Set<Hex>()
 
+const lastSaid = new Map<string, string>()
 async function pass(window: number): Promise<void> {
   const latest = await pub.getBlockNumber()
   const logs = await pub.getContractEvents({
@@ -57,7 +59,9 @@ async function pass(window: number): Promise<void> {
     const j = await judgeCommit(deal, receipts, job, { swarm, readService, imageModels: config.og.imageModels }, { nowSec, graceSec: Math.floor(window / 2) })
     const tag = `[verifier] ${id.slice(0, 10)}… worker ${deal.worker.slice(0, 10)}…`
     if (j.verdict === 'abstain') {
-      console.log(`${tag} abstain — ${j.reason}`)
+      // Every pass re-reads every deal in its window; say an abstention once, not every 10s.
+      if (lastSaid.get(id) !== j.reason) console.log(`${tag} abstain — ${j.reason}`)
+      lastSaid.set(id, j.reason)
       continue
     }
     try {
@@ -81,6 +85,12 @@ if (onChainVerifier.toLowerCase() !== me.toLowerCase()) {
 }
 const window = Number(await pub.readContract({ address: config.escrow.address, abi: DUSK_ESCROW_ABI, functionName: 'CHALLENGE_WINDOW' }))
 console.log(`── dusk verifier ──  ${me}  escrow ${config.escrow.address}  window ${window}s`)
+// Canary jobs start with the verifier, which has to stay running anyway: one every
+// DUSK_CANARY_EVERY (default 5m, `off` disables), signed by this same key. A canary
+// failure is logged and never stops the verdict loop below.
+const canaryEvery = env['PASS_ONCE'] === '1' ? null : canaryEveryMs(env)
+if (canaryEvery !== null) void runCanaryLoop(canaryEvery)
+else console.log('[canary] off')
 for (;;) {
   await pass(window).catch((e) => console.error(`[verifier] pass failed: ${e instanceof Error ? e.message : String(e)}`))
   if (env['PASS_ONCE'] === '1') break
