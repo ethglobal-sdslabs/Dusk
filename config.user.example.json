@@ -44,6 +44,9 @@
     "verifierAddress": "0x753Ce2831E64062d9dEE942168a372a59C7A7C60",
     "challengeWindowSec": 600
   },
+  "reputation": {
+    "verifiers": ["0x753Ce2831E64062d9dEE942168a372a59C7A7C60"]
+  },
   "swarm": {
     "endpoint": "https://api.gateway.ethswarm.org",
     "downloadEndpoint": "https://download.gateway.ethswarm.org",

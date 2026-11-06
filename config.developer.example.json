@@ -78,6 +78,7 @@
   },
   "_reputation": "Company-only workflow setup. The on-chain revoker is the reputation contract, not workflowOwner. The schedule needs an approved deployed CRE workflow; blank workflowId and forwarderAddress mean automation is not active.",
   "reputation": {
+    "verifiers": ["0x753Ce2831E64062d9dEE942168a372a59C7A7C60"],
     "revokeBelow": 50,
     "minimumResolved": 3,
     "schedule": "0 0 */4 * * *",
