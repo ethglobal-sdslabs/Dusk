@@ -12,7 +12,8 @@
     "probe:swarm": "tsx scripts/probe-swarm.ts",
     "worker": "tsx worker/src/main.ts",
     "post-job": "tsx scripts/post-job.ts",
-    "demo": "tsx scripts/demo-e2e.ts"
+    "demo": "tsx scripts/demo-e2e.ts",
+    "query": "tsx scripts/query-arkiv.ts"
   },
   "devDependencies": {
     "@arkiv-network/sdk": "1.0.1",
