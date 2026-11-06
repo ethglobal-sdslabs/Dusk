@@ -25,6 +25,7 @@
     "probe:browser": "tsx scripts/probe-browser.ts",
     "demo:private": "tsx scripts/demo-private.ts",
     "query": "tsx scripts/query-arkiv.ts",
+    "probe:ens": "tsx scripts/probe-ens.ts",
     "mcp": "tsx mcp/src/main.ts"
   },
   "devDependencies": {
