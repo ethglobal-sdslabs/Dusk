@@ -92,9 +92,16 @@ function arkivEntities(rpc: ReputationRpc, c: ReputationWorkflowConfig, kind: 'r
       const resultKind = field('result', 'str')
       if (kind === 'receipt' && !hash(outputHash)) continue
       if (kind === 'verification' && !['pass', 'bad', 'illegal'].includes(String(resultKind))) continue
+      // Policy v2: why a verdict was given, and the canary's latency (claim to receipt).
+      const check = field('check', 'str')
+      const latencyMs = u64Number(field('latency_ms', 'u64'))
       out.push({ id: entity.key, creator: getAddress(entity.creator.toLowerCase()), readonly: true, createdAtBlock: created,
         escrowId, worker: getAddress(worker.toLowerCase()), ...(hash(outputHash) ? { outputHash } : {}),
-        ...(kind === 'verification' ? { result: resultKind as 'pass' | 'bad' | 'illegal' } : {}) })
+        ...(kind === 'verification' ? {
+          result: resultKind as 'pass' | 'bad' | 'illegal',
+          ...(typeof check === 'string' ? { check } : {}),
+          ...(latencyMs !== undefined && Number.isFinite(latencyMs) ? { latencyMs } : {}),
+        } : {}) })
     }
     if (result.data.length < 100) return out
   }
@@ -134,14 +141,16 @@ export function collectReputationReports(c: ReputationWorkflowConfig, rpc: Reput
     const flags = new Map<string, number>()
     let badAnswers = 0
     let illegal = 0
+    let late = 0
+    let passed = 0
     for (let offset = 0; offset < Math.max(1, jobs.length); offset += 200) {
       const page = jobs.slice(offset, offset + 200)
-      const state = read(c.ens.reputation, DuskReputationAbi, 'evaluationState', [wallet, page]) as [number, number, number[]]
-      badAnswers = state[0]; illegal = state[1]
-      if (state[2].length !== page.length) throw new Error('On-chain finding ledger is incomplete.')
-      page.forEach((job, i) => flags.set(job.toLowerCase(), state[2][i]!))
+      const state = read(c.ens.reputation, DuskReputationAbi, 'evaluationState', [wallet, page]) as [number, number, number, number, number[]]
+      badAnswers = state[0]; illegal = state[1]; late = state[2]; passed = state[3]
+      if (state[4].length !== page.length) throw new Error('On-chain finding ledger is incomplete.')
+      page.forEach((job, i) => flags.set(job.toLowerCase(), state[4][i]!))
     }
-    return evaluateReputation({ wallet, generation: membership[1], evaluatedAt: nowSec, galileoBlock: BigInt(galileo.number), facts, previous: { badAnswers, illegal, flags } })
+    return evaluateReputation({ wallet, generation: membership[1], evaluatedAt: nowSec, galileoBlock: BigInt(galileo.number), facts, previous: { badAnswers, illegal, late, passed, flags } })
   })
   const reports: Hex[] = []
   for (let i = 0; i < evaluations.length; i += 20) {
@@ -152,4 +161,12 @@ export function collectReputationReports(c: ReputationWorkflowConfig, rpc: Reput
       evaluations: batch.map((r) => ({ ...r.evaluation, evidenceRef })) }))
   }
   return { reports, evaluated: evaluations.length }
+}
+
+/** A `u64` attribute as Arkiv's RPC returns it — measured live: a hex string, e.g. '0x8ca0'. */
+export function u64Number(value: unknown): number | undefined {
+  if (typeof value === 'number') return Number.isSafeInteger(value) && value >= 0 ? value : undefined
+  if (typeof value !== 'string' || !/^(0x[0-9a-fA-F]+|\d+)$/.test(value)) return undefined
+  const n = Number(BigInt(value))
+  return Number.isSafeInteger(n) ? n : undefined
 }

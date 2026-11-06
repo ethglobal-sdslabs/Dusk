@@ -29,7 +29,7 @@ export function world() {
   const state = {
     wallets: [user], receipts: [] as unknown[], verifications: [] as unknown[],
     calls: [] as string[], sourceHash: reputationSourceHash(reputationWorkflowSources(config)),
-    fail: '', badAnswers: 0, illegal: 0, flags: new Map<string, number>(), missingInventory: false, paused: false,
+    fail: '', badAnswers: 0, illegal: 0, late: 0, passed: 0, flags: new Map<string, number>(), missingInventory: false, paused: false,
   }
   const encode = (abi: Abi, functionName: string, result: unknown) => encodeFunctionResult({ abi, functionName, result })
   const rpc: ReputationRpc = (url, method, params) => {
@@ -68,7 +68,7 @@ export function world() {
       if (fn === 'memberCount') return encode(abi, fn, BigInt(state.wallets.length))
       if (fn === 'memberWallets') return encode(abi, fn, state.missingInventory ? [] : state.wallets.slice(Number(args[0]), Number(args[0]) + Number(args[1])))
       if (fn === 'membershipOf') return encode(abi, fn, ['member', 1n, addr(9), 100000n, 1])
-      if (fn === 'evaluationState') return encode(abi, fn, [state.badAnswers, state.illegal, (args[1] as Hex[]).map((job) => state.flags.get(job.toLowerCase()) ?? 0)])
+      if (fn === 'evaluationState') return encode(abi, fn, [state.badAnswers, state.illegal, state.late, state.passed, (args[1] as Hex[]).map((job) => state.flags.get(job.toLowerCase()) ?? 0)])
     }
     throw new Error(`Unexpected test call ${method}`)
   }
