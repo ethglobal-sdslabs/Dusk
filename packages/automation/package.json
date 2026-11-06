@@ -1,0 +1,16 @@
+{
+  "name": "@dusk/automation",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:runtime": "bun test test/runtime.bun.test.js",
+    "build": "cre-compile src/workflow.ts dist/workflow.wasm"
+  },
+  "dependencies": {
+    "@chainlink/cre-sdk": "1.23.0",
+    "viem": "^2.57.13"
+  },
+  "devDependencies": { "typescript": "^5.9.3" }
+}

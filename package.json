@@ -32,6 +32,8 @@
     "index:ens": "tsx scripts/index-ens.ts",
     "attest:ens": "tsx scripts/attest-ens.ts",
     "propose:bans": "tsx scripts/propose-bans.ts",
+    "reputation:deploy": "tsx scripts/deploy-reputation.ts",
+    "reputation:prepare": "tsx scripts/prepare-reputation-workflow.ts",
     "mcp": "tsx mcp/src/main.ts"
   },
   "devDependencies": {
