@@ -20,6 +20,7 @@
     "demo": "tsx scripts/demo-e2e.ts",
     "demo:recovery": "tsx scripts/demo-recovery.ts",
     "demo:refund": "tsx scripts/demo-refund.ts",
+    "probe:browser": "tsx scripts/probe-browser.ts",
     "demo:private": "tsx scripts/demo-private.ts",
     "query": "tsx scripts/query-arkiv.ts"
   },
