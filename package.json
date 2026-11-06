@@ -31,6 +31,7 @@
     "ens:revoke": "tsx scripts/ens-revoke.ts",
     "index:ens": "tsx scripts/index-ens.ts",
     "attest:ens": "tsx scripts/attest-ens.ts",
+    "propose:bans": "tsx scripts/propose-bans.ts",
     "mcp": "tsx mcp/src/main.ts"
   },
   "devDependencies": {
