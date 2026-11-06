@@ -26,6 +26,8 @@
     "demo:private": "tsx scripts/demo-private.ts",
     "query": "tsx scripts/query-arkiv.ts",
     "probe:ens": "tsx scripts/probe-ens.ts",
+    "ens:deploy": "tsx scripts/deploy-ens.ts",
+    "ens:register": "tsx scripts/ens-register.ts",
     "mcp": "tsx mcp/src/main.ts"
   },
   "devDependencies": {
