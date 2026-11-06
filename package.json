@@ -24,7 +24,8 @@
     "demo:refund": "tsx scripts/demo-refund.ts",
     "probe:browser": "tsx scripts/probe-browser.ts",
     "demo:private": "tsx scripts/demo-private.ts",
-    "query": "tsx scripts/query-arkiv.ts"
+    "query": "tsx scripts/query-arkiv.ts",
+    "mcp": "tsx mcp/src/main.ts"
   },
   "devDependencies": {
     "@arkiv-network/sdk": "1.0.1",

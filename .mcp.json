@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "dusk": {
+      "type": "stdio",
+      "command": "pnpm",
+      "args": ["--silent", "mcp"]
+    }
+  }
+}
