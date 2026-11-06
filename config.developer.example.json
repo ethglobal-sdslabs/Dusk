@@ -1,0 +1,98 @@
+{
+  "_setup": "DEVELOPER / COMPANY ONLY: copy this example to config.json; add only the credentials needed for your role. Never share the populated config.json. Read README.md before administrative commands.",
+  "_buyer": "For /buy, add your own 32-byte wallet privateKey and matching public address. Leave both blank if you only earn. This wallet signs on Sepolia, Arkiv and Galileo.",
+  "buyer": {
+    "privateKey": "",
+    "address": ""
+  },
+  "_worker": "For /earn, add your own worker wallet privateKey and matching address. Use a different wallet from the buyer when using both roles.",
+  "worker": {
+    "privateKey": "",
+    "address": ""
+  },
+  "_og": "For /earn, computeKey is your own 0G sk- inference key; accessKey is an optional mk- balance key. Leave both empty if you only buy.",
+  "og": {
+    "computeKey": "",
+    "accessKey": "",
+    "baseUrl": "https://router-api.0g.ai",
+    "models": [
+      "0gm-1.0-35b-a3b",
+      "z-image-turbo"
+    ],
+    "imageModels": [
+      "z-image-turbo"
+    ],
+    "imageSize": "1024x1024"
+  },
+  "_funding": "Each participating wallet needs Sepolia test ETH for its Dusk name, Arkiv Rabdi GLM for writes, and Galileo 0G for escrow transactions. A buyer also needs enough Galileo 0G to fund jobs.",
+  "input": {
+    "maxBytes": 4000000,
+    "maxAttachments": 4,
+    "maxImagePx": 1568
+  },
+  "_public": "Public network and contract settings below are shared by users. Restart the app after editing. ENS names are registered on Sepolia; this is testnet infrastructure.",
+  "arkiv": {
+    "rpc": "https://rpc.rabdi.db-chain.testnet.arkiv.network",
+    "chainId": 7794095,
+    "accessKey": ""
+  },
+  "escrow": {
+    "address": "0x20f788e1b423519490d4aad84929fd19fbf6e7c5",
+    "rpc": "https://evmrpc-testnet.0g.ai",
+    "chainId": 16602,
+    "admissionAddress": "",
+    "verifierAddress": "0x753Ce2831E64062d9dEE942168a372a59C7A7C60",
+    "challengeWindowSec": 600
+  },
+  "swarm": {
+    "endpoint": "https://api.gateway.ethswarm.org",
+    "downloadEndpoint": "https://download.gateway.ethswarm.org",
+    "batchId": ""
+  },
+  "ens": {
+    "mode": "application-enforced",
+    "chainId": 11155111,
+    "rpc": "https://ethereum-sepolia-rpc.publicnode.com",
+    "parentName": "dusk.eth",
+    "ownerAddress": "0x1DCbDe884e9fb92E0f73034eF994080eDc3b6068",
+    "rootRegistry": "0xB458D6a3a77919449d03e7A6903C26827c1eC43f",
+    "registryAddress": "0xD4eBcbBdF463C9c45784603Db0dDD499BC44A8B4",
+    "universalResolver": "0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe",
+    "childRegistry": "0xe3674be612B1F08eF2cF40Ae8139B57A12efeaC5",
+    "childRegistryDeployBlock": "12076762",
+    "controllerAddress": "0xc3ecd6451dcc343b5edb2b37a0ed1ebcc4830df3",
+    "controllerDeployBlock": "12076774",
+    "reputationAddress": "0x246ee35c3a46c5474bae5e3e73baea86811f722f",
+    "revokerAddress": "0x246ee35c3a46c5474bae5e3e73baea86811f722f"
+  },
+  "_security": "Run only on your own machine. The loopback app loads the requested wallet key and 0G credentials into browser memory; never expose the local server or share config.json.",
+  "_operators": "Company-authorized operators only. ensOwnerPrivateKey signs namespace and reputation setup. Other operator keys are optional and must only belong to their corresponding on-chain authority. Ordinary users never need this section.",
+  "operators": {
+    "ensOwnerPrivateKey": "",
+    "ensRevokerPrivateKey": "",
+    "ensUnbannerPrivateKey": "",
+    "ensIndexerPrivateKey": "",
+    "ensAttesterPrivateKey": "",
+    "ensSubmitterPrivateKey": "",
+    "verifierPrivateKey": ""
+  },
+  "_reputation": "Company-only workflow setup. The on-chain revoker is the reputation contract, not workflowOwner. The schedule needs an approved deployed CRE workflow; blank workflowId and forwarderAddress mean automation is not active.",
+  "reputation": {
+    "revokeBelow": 50,
+    "minimumResolved": 3,
+    "schedule": "0 0 */4 * * *",
+    "workflowOwner": "0x3c5A9918dd81A0EB059442e8AE915902b75088aD",
+    "workflowId": "",
+    "forwarderAddress": "",
+    "maxReportAgeSec": 3600,
+    "deployBlock": "12076798",
+    "escrowFromBlock": "0",
+    "logRange": 20000,
+    "maxPages": 1000,
+    "maxWallets": 1000,
+    "gasLimit": 8000000
+  },
+  "_steps": "Copy this example to config.json without overwriting an existing config. Fill your own role credentials, run pnpm install and pnpm dev:web, then choose a name on /buy or /earn. See README.md.",
+  "_admin_steps": "After configuring the company owner signer, use forge build --root contracts and preview with pnpm ens:deploy or pnpm reputation:deploy. Read the developer setup in README.md before any --yes or --activate operation.",
+  "_configuration": "Use this example to create a private config.json. Nonblank fields override legacy environment settings; restart the app after changes. .env is optional."
+}
