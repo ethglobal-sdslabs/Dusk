@@ -13,7 +13,7 @@ const config: EnsConfig = { mode: 'display', chainId: 11155111, parentName: 'dus
 const record = {
   score: 90, standing: 2, policyVersion: 1, policyEpoch: 3, generation: 1n, sequence: 5n,
   evaluatedAt: 1000n, publishedAtBlock: 100n, galileoBlock: 80n, arkivBlock: 90n,
-  resolvedJobs: 3, badAnswers: 1, illegal: 0, evidenceHash: hash('evidence'), namehash: namehash('alice.dusk.eth'),
+  resolvedJobs: 3, badAnswers: 1, illegal: 0, late: 2, passed: 4, evidenceHash: hash('evidence'), namehash: namehash('alice.dusk.eth'),
   sourceContextHash: hash('sources'), evidenceRef: hash('swarm'),
 }
 const publication = getAbiItem({ abi: DuskReputationAbi, name: 'ReputationPublished' })
@@ -56,7 +56,7 @@ describe('official reputation mirrors', () => {
   it('requires the exact finalized canonical publication, not a self-written Arkiv claim', async () => {
     const { state, client } = world()
     expect(await verifyReputationMirror(config, client, row(), registry)).toBe(true)
-    for (const forged of [{ score: 100 }, { standing: 'good' }, { generation: 2 }, { sequence: 99 }, { badAnswers: 0 }, { resolvedJobs: 100 },
+    for (const forged of [{ score: 100 }, { standing: 'good' }, { generation: 2 }, { sequence: 99 }, { badAnswers: 0 }, { late: 0 }, { passed: 99 }, { resolvedJobs: 100 },
       { evidenceHash: hash('forged') }, { evidenceRef: hash('forged') }, { identityController: wallet }, { namespaceRegistry: wallet }, { controller: wallet }, { sourceBlockHash: hash('fork') }]) {
       expect(await verifyReputationMirror(config, client, { ...row(), ...forged } as ReputationMirror, registry)).toBe(false)
     }

@@ -126,6 +126,7 @@ const FIELDS: Record<Kind, Record<string, FieldSpec>> = {
     ensNamehash: { attr: 'ens_namehash', type: 'str' }, generation: { attr: 'generation', type: 'u64' },
     sequence: { attr: 'sequence', type: 'u64' }, score: { attr: 'score', type: 'u64' }, standing: { attr: 'standing', type: 'str' },
     resolvedJobs: { attr: 'resolved_jobs', type: 'u64' }, badAnswers: { attr: 'bad_answers', type: 'u64' }, illegal: { attr: 'illegal', type: 'u64' },
+    late: { attr: 'late', type: 'u64', optional: true }, passed: { attr: 'passed', type: 'u64', optional: true },
     policyVersion: { attr: 'policy_version', type: 'u64' }, policyEpoch: { attr: 'policy_epoch', type: 'u64' }, evaluatedAt: { attr: 'evaluated_at', type: 'u64' },
     galileoBlock: { attr: 'galileo_block', type: 'u64' }, arkivBlock: { attr: 'arkiv_block', type: 'u64' },
     evidenceHash: { attr: 'evidence_hash', type: 'str' }, evidenceRef: { attr: 'evidence_ref', type: 'str' },

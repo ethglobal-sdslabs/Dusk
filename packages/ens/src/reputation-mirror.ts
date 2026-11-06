@@ -25,7 +25,7 @@ export function reputationMirrorsFromLogs(config: EnsConfig, namespaceRegistry: 
       rows.push({
         wallet: getAddress(wallet), ensChainId: config.chainId, controller: getAddress(config.reputation), identityController: getAddress(config.controller),
         namespaceRegistry: getAddress(namespaceRegistry), ensName, ensNamehash: r.namehash, generation: safe(generation), sequence: safe(r.sequence),
-        score: r.score, standing, resolvedJobs: r.resolvedJobs, badAnswers: r.badAnswers, illegal: r.illegal,
+        score: r.score, standing, resolvedJobs: r.resolvedJobs, badAnswers: r.badAnswers, illegal: r.illegal, late: r.late, passed: r.passed,
         policyVersion: r.policyVersion, policyEpoch: r.policyEpoch, evaluatedAt: safe(r.evaluatedAt),
         galileoBlock: safe(r.galileoBlock), arkivBlock: safe(r.arkivBlock), evidenceHash: r.evidenceHash, evidenceRef: r.evidenceRef,
         sourceContextHash: r.sourceContextHash, sourceTx: log.transactionHash, sourceBlock: safe(log.blockNumber), sourceBlockHash: log.blockHash, sourceLogIndex: log.logIndex,
@@ -59,7 +59,7 @@ export async function verifyReputationMirror(config: EnsConfig, chain: Reputatio
   } catch { return false }
 }
 
-export type PublishedReputation = Pick<ReputationMirror, 'score' | 'standing' | 'resolvedJobs' | 'badAnswers' | 'illegal' | 'policyVersion' | 'policyEpoch' | 'generation' | 'sequence' | 'evaluatedAt' | 'evidenceHash' | 'evidenceRef'>
+export type PublishedReputation = Pick<ReputationMirror, 'score' | 'standing' | 'resolvedJobs' | 'badAnswers' | 'illegal' | 'late' | 'passed' | 'policyVersion' | 'policyEpoch' | 'generation' | 'sequence' | 'evaluatedAt' | 'evidenceHash' | 'evidenceRef'>
 export type PublishedReputationResult = { status: 'verified' | 'stale' | 'missing' | 'unknown'; source?: 'mirror' | 'chain'; record?: PublishedReputation }
 
 export function createPublishedReputationReader(config: EnsConfig, client?: ReputationChainClient, opts: { now?: () => number; maxAgeMs?: number } = {}) {
@@ -87,7 +87,7 @@ export function createPublishedReputationReader(config: EnsConfig, client?: Repu
         if (r.sequence === 0n) return { status: 'missing' }
         const standing = REPUTATION_STANDINGS[r.standing]
         if (!standing) return { status: 'unknown' }
-        const record: PublishedReputation = { score: r.score, standing, resolvedJobs: r.resolvedJobs, badAnswers: r.badAnswers, illegal: r.illegal,
+        const record: PublishedReputation = { score: r.score, standing, resolvedJobs: r.resolvedJobs, badAnswers: r.badAnswers, illegal: r.illegal, late: r.late, passed: r.passed,
           policyVersion: r.policyVersion, policyEpoch: r.policyEpoch, generation: safe(r.generation), sequence: safe(r.sequence), evaluatedAt: safe(r.evaluatedAt), evidenceHash: r.evidenceHash, evidenceRef: r.evidenceRef }
         const age = now() - record.evaluatedAt * 1000
         const status = r.policyEpoch !== context.epoch || age < 0 || age > (opts.maxAgeMs ?? 5 * 3600_000) ? 'stale' : 'verified'

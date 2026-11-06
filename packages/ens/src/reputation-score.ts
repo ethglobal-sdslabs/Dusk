@@ -1,6 +1,8 @@
 import { encodeAbiParameters, getAddress, keccak256, toHex, zeroHash, type Address, type Hex } from 'viem'
+import { applyFinding, canaryScore, lateThresholdMs, newFindingState, verdictFinding, type FindingKind } from '@dusk/core'
 
-export const REPUTATION_SCORE_POLICY_VERSION = 1
+// v2: canary scoring (@dusk/core canary-score), mirrored by DuskReputation.sol.
+export const REPUTATION_SCORE_POLICY_VERSION = 2
 export const AUTOMATIC_REPUTATION_POLICY = { below: 50, minimumResolved: 3, intervalSeconds: 4 * 3600 } as const
 
 export type ReputationSources = {
@@ -23,8 +25,12 @@ export type ReputationEntity = {
   worker: Address
   outputHash?: Hex
   result?: 'pass' | 'bad' | 'illegal'
+  /** Verification only: why (`empty-answer`, `no-delivery`, `delivered`, …). */
+  check?: string
+  /** Verification only: canary claim to receipt, from Arkiv's block stamps. */
+  latencyMs?: number
 }
-export type ReputationFinding = { job: Hex; kind: 1 | 2 }
+export type ReputationFinding = { job: Hex; kind: FindingKind }
 export type ReputationFacts = {
   sources: ReputationSources
   commits: readonly ReputationCommit[]
@@ -50,9 +56,9 @@ export function reputationJobId(sources: Pick<ReputationSources, 'galileoChainId
   return keccak256(encodeAbiParameters([{ type: 'uint256' }, { type: 'address' }, { type: 'bytes32' }], [BigInt(sources.galileoChainId), sources.escrow, escrowId]))
 }
 
-export function reputationScore(badAnswers: number, illegal: number): number {
-  for (const count of [badAnswers, illegal]) if (!Number.isSafeInteger(count) || count < 0 || count > 0xffffffff) throw new Error('Invalid reputation count.')
-  return Math.max(0, 100 - badAnswers * 10 - illegal * 50)
+export function reputationScore(badAnswers: number, illegal: number, late = 0, passed = 0): number {
+  for (const count of [badAnswers, illegal, late, passed]) if (!Number.isSafeInteger(count) || count < 0 || count > 0xffffffff) throw new Error('Invalid reputation count.')
+  return canaryScore({ empty: badAnswers, illegal, late, passed })
 }
 
 export function reputationFindings(wallet: Address, facts: ReputationFacts) {
@@ -75,12 +81,14 @@ export function reputationFindings(wallet: Address, facts: ReputationFacts) {
   const mine = [...resolutions.values()].filter((r) => lower(r.worker) === who)
   const settledJobs = mine.filter((r) => r.result === 'settled').length
   const rejectedJobs = mine.filter((r) => r.result === 'rejected').length
-  const findings = new Map<string, ReputationFinding & { entityId: string; creator: Address; createdAtBlock: string; escrowId: Hex; committedHash: Hex; claimedHash?: Hex; verdict?: string }>()
-  const add = (entity: ReputationEntity, kind: 1 | 2) => {
+  const findings = new Map<string, ReputationFinding & { entityId: string; creator: Address; createdAtBlock: string; escrowId: Hex; committedHash?: Hex; claimedHash?: Hex; verdict?: string; check?: string; latencyMs?: number }>()
+  const add = (entity: ReputationEntity, kind: FindingKind) => {
     const job = reputationJobId(facts.sources, entity.escrowId)
     const key = `${job}:${kind}`
+    const committed = commits.get(lower(entity.escrowId))?.outputHash
     if (!findings.has(key)) findings.set(key, { job, kind, entityId: entity.id, creator: entity.creator!, createdAtBlock: String(entity.createdAtBlock), escrowId: entity.escrowId,
-      committedHash: commits.get(lower(entity.escrowId))!.outputHash, ...(entity.outputHash ? { claimedHash: entity.outputHash } : {}), ...(entity.result ? { verdict: entity.result } : {}) })
+      ...(committed ? { committedHash: committed } : {}), ...(entity.outputHash ? { claimedHash: entity.outputHash } : {}), ...(entity.result ? { verdict: entity.result } : {}),
+      ...(entity.check ? { check: entity.check } : {}), ...(entity.latencyMs !== undefined ? { latencyMs: entity.latencyMs } : {}) })
   }
   const immutable = (entity: ReputationEntity) => entity.readonly === true && entity.creator !== undefined &&
     entity.createdAtBlock !== undefined && entity.createdAtBlock <= facts.finalizedArkivBlock
@@ -90,12 +98,16 @@ export function reputationFindings(wallet: Address, facts: ReputationFacts) {
     if (commit && lower(commit.worker) === who && lower(commit.outputHash) !== lower(entity.outputHash)) add(entity, 2)
   }
   const trusted = new Set(facts.sources.verifiers.map(lower))
-  for (const entity of [...facts.verifications].sort((a, b) => compare(a.id, b.id))) {
-    if (!immutable(entity) || !trusted.has(lower(entity.creator!)) || lower(entity.worker) !== who) continue
+  const verdicts = facts.verifications.filter((e) => immutable(e) && trusted.has(lower(e.creator!)) && e.result !== undefined)
+  // "Late" is measured against every seller's delivered canaries, not this one's.
+  const lateAfterMs = lateThresholdMs(verdicts.map((e) => ({ escrowId: e.escrowId, result: e.result!, latencyMs: e.latencyMs })))
+  for (const entity of [...verdicts].sort((a, b) => compare(a.id, b.id))) {
+    if (lower(entity.worker) !== who) continue
     const commit = commits.get(lower(entity.escrowId))
-    if (!commit || lower(commit.worker) !== who) continue
-    if (entity.result === 'bad') add(entity, 1)
-    else if (entity.result === 'illegal') add(entity, 2)
+    // A no-delivery has no commit behind it — the seller never delivered.
+    if ((!commit || lower(commit.worker) !== who) && entity.check !== 'no-delivery') continue
+    const kind = verdictFinding({ result: entity.result!, check: entity.check ?? '', latencyMs: entity.latencyMs }, lateAfterMs)
+    if (kind !== null) add(entity, kind)
   }
   return { settledJobs, rejectedJobs, resolvedDigest: keccak256(toHex(JSON.stringify(mine.sort((a, b) => compare(lower(a.escrowId), lower(b.escrowId))).map((r) => [lower(r.escrowId), r.result, String(r.blockNumber), r.transactionHash])))),
     findings: [...findings.values()].sort((a, b) => compare(`${a.job}:${a.kind}`, `${b.job}:${b.kind}`)) }
@@ -103,38 +115,40 @@ export function reputationFindings(wallet: Address, facts: ReputationFacts) {
 
 export type ReputationEvaluation = {
   wallet: Address; generation: bigint; score: number; settledJobs: number; rejectedJobs: number;
-  badAnswers: number; illegal: number; policyVersion: number; evaluatedAt: bigint;
+  badAnswers: number; illegal: number; late: number; passed: number; policyVersion: number; evaluatedAt: bigint;
   galileoBlock: bigint; arkivBlock: bigint; evidenceHash: Hex; evidenceRef: Hex; findings: ReputationFinding[];
 }
 
 export function evaluateReputation(args: {
   wallet: Address; generation: bigint; evaluatedAt: bigint; galileoBlock: bigint; facts: ReputationFacts;
-  previous: { badAnswers: number; illegal: number; flags: ReadonlyMap<string, number> };
+  previous: { badAnswers: number; illegal: number; late?: number; passed?: number; flags: ReadonlyMap<string, number> };
 }) {
   const fresh = reputationFindings(args.wallet, args.facts)
-  let { badAnswers, illegal } = args.previous
+  // Replays exactly what DuskReputation._applyFinding will do with these findings, so the
+  // counts and score submitted are the ones the contract computes — or it refuses them.
+  const state = newFindingState(
+    { empty: args.previous.badAnswers, illegal: args.previous.illegal, late: args.previous.late ?? 0, passed: args.previous.passed ?? 0 },
+    args.previous.flags,
+  )
   const novel: ReputationFinding[] = []
   for (const finding of fresh.findings) {
-    const flags = args.previous.flags.get(lower(finding.job)) ?? 0
-    const bit = finding.kind === 1 ? 1 : 2
-    if ((flags & bit) !== 0 || (flags & (bit << 2)) !== 0) continue
     if (novel.length >= 200) break
-    novel.push({ job: finding.job, kind: finding.kind })
-    if (finding.kind === 1) badAnswers++; else illegal++
+    if (applyFinding(state, finding.job, finding.kind)) novel.push({ job: finding.job, kind: finding.kind })
   }
-  const score = reputationScore(badAnswers, illegal)
+  const { empty: badAnswers, illegal, late, passed } = state.counts
+  const score = reputationScore(badAnswers, illegal, late, passed)
   const evidence = JSON.stringify({
     policy: REPUTATION_SCORE_POLICY_VERSION, sources: reputationSourceHash(args.facts.sources),
     wallet: lower(args.wallet), generation: String(args.generation), evaluatedAt: String(args.evaluatedAt),
     galileoBlock: String(args.galileoBlock), arkivBlock: String(args.facts.finalizedArkivBlock),
     ...(args.facts.snapshotHashes ? { snapshotHashes: args.facts.snapshotHashes } : {}), resolvedDigest: fresh.resolvedDigest,
-    previous: { badAnswers: args.previous.badAnswers, illegal: args.previous.illegal },
+    previous: { badAnswers: args.previous.badAnswers, illegal: args.previous.illegal, late: args.previous.late ?? 0, passed: args.previous.passed ?? 0 },
     settledJobs: fresh.settledJobs, rejectedJobs: fresh.rejectedJobs,
     findings: fresh.findings.filter((f) => novel.some((n) => n.job === f.job && n.kind === f.kind)),
   })
   const evaluation: ReputationEvaluation = {
     wallet: args.wallet, generation: args.generation, score, settledJobs: fresh.settledJobs, rejectedJobs: fresh.rejectedJobs,
-    badAnswers, illegal, policyVersion: REPUTATION_SCORE_POLICY_VERSION, evaluatedAt: args.evaluatedAt,
+    badAnswers, illegal, late, passed, policyVersion: REPUTATION_SCORE_POLICY_VERSION, evaluatedAt: args.evaluatedAt,
     galileoBlock: args.galileoBlock, arkivBlock: args.facts.finalizedArkivBlock, evidenceHash: keccak256(toHex(evidence)), evidenceRef: zeroHash, findings: novel,
   }
   return { evaluation, evidence }

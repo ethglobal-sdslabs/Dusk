@@ -119,6 +119,7 @@ export const ReputationSchema = defineSchema(kindTag('reputation_v1'), {
   resolved_jobs: u64(), bad_answers: u64(), illegal: u64(), evaluated_at: u64(), galileo_block: u64(), arkiv_block: u64(),
   evidence_hash: str(), evidence_ref: str(), source_context_hash: str(), source_tx: str(),
   source_block: u64(), source_block_hash: str(), source_log_index: u64(),
+  late: u64().optional(), passed: u64().optional(),
 })
 
 export const SCHEMAS = {
