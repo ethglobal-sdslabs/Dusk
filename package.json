@@ -21,6 +21,7 @@
     "verifier": "tsx scripts/verifier-bot.ts",
     "worker": "tsx worker/src/main.ts",
     "post-job": "tsx scripts/post-job.ts",
+    "canary": "tsx scripts/canary.ts",
     "deploy:escrow": "tsx scripts/deploy-escrow.ts",
     "reclaim": "tsx scripts/reclaim-escrow.ts",
     "demo": "tsx scripts/demo-e2e.ts",
