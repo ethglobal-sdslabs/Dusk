@@ -288,6 +288,9 @@ export interface ReputationMirror extends ArkivOwned {
   resolvedJobs: number
   badAnswers: number
   illegal: number
+  /** Policy v2: late and delivered canaries. Absent on policy-v1 rows. */
+  late?: number
+  passed?: number
   policyVersion: number
   policyEpoch: number
   evaluatedAt: number

@@ -100,3 +100,4 @@ export {
   sniffImage,
 } from './image'
 export { planJob, type JobPlan, type PlannedPiece } from './plan'
+export * from './canary-score'
