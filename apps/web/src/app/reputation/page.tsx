@@ -129,7 +129,6 @@ export default function ReputationPage() {
                               </th>
                               <td>
                                 <span className="reputation-standing" data-standing={standing}>{STANDING[standing]}</span>
-                                {r.moderationStatus === 'unknown' && <span className="reputation-sub">Ban status unavailable</span>}
                               </td>
                               <td className="num figure" title={`${r.badAnswers} bad answers · ${r.illegal} misconduct findings`}>
                                 {r.score}
