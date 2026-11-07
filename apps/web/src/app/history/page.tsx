@@ -16,6 +16,7 @@ import { ForgetButton } from '../../components/ForgetButton'
 import { dropRow } from '../../lib/history'
 import { browserClock, browserPricing, browserReadConfig } from '../../lib/config'
 import { fetchPrefill, type Prefill } from '../../lib/prefill'
+import { useWallet } from '../../lib/wallet'
 import { formatCount, formatWei } from '../../lib/market'
 import {
   formatUsd,
@@ -53,7 +54,15 @@ export default function HistoryPage() {
     }
   }, [])
   const [view, setView] = useState<View>('orders')
-  const [prefill, setPrefill] = useState<Prefill | null>(null)
+  const [fetched, setPrefill] = useState<Prefill | null>(null)
+  const buyerWallet = useWallet('buyer')
+  const workerWallet = useWallet('worker')
+  const prefill = useMemo<Prefill | null>(() => {
+    if (!fetched) return null
+    const buyerAddress = fetched.buyerAddress ?? (buyerWallet.address as Address | null) ?? undefined
+    const workerAddress = fetched.workerAddress ?? (workerWallet.address as Address | null) ?? undefined
+    return { ...fetched, ...(buyerAddress ? { buyerAddress } : {}), ...(workerAddress ? { workerAddress } : {}) }
+  }, [fetched, buyerWallet.address, workerWallet.address])
   const [load, setLoad] = useState<Load>({ state: 'idle' })
   const request = useRef(0)
   async function show(nextView: View, who: string) {
@@ -118,7 +127,9 @@ export default function HistoryPage() {
                 </button>
               </div>
               {prefill && !(view === 'sales' ? prefill.workerAddress : prefill.buyerAddress) && (
-                <p className="notice">Add {view === 'sales' ? 'worker.address' : 'buyer.address'} to config.json to see this history.</p>
+                <p className="notice">{buyerWallet.local === false
+                  ? <>Add a wallet key on the <Link href={view === 'sales' ? '/earn' : '/buy'}>{view === 'sales' ? 'Earn' : 'Buy'}</Link> page to see this history.</>
+                  : <>Add {view === 'sales' ? 'worker.address' : 'buyer.address'} to config.json to see this history.</>}</p>
               )}
             </section>
           )}

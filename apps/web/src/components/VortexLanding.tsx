@@ -147,8 +147,10 @@ export function VortexLanding() {
                 <span className="vortex-wallet-address">
                   <WalletName address={wallet.address} />
                 </span>
-                <span className="vortex-wallet-action">Configured</span>
+                <span className="vortex-wallet-action">{wallet.local === false ? 'In this tab' : 'Configured'}</span>
               </span>
+            ) : wallet.local === false ? (
+              <Link href="/buy" className="vortex-wallet-button">Add a wallet key</Link>
             ) : (
               <button
                 type="button"

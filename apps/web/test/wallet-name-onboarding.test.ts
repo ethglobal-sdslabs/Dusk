@@ -17,7 +17,7 @@ const other = '0x2222222222222222222222222222222222222222' as Address
 const registry = '0x3333333333333333333333333333333333333333' as Address
 const snapshot = (wallet: Address, status: VerifiedIdentity['status']): VerifiedIdentity => ({ wallet, status, name: status === 'active' ? 'alice.dusk.eth' : undefined, registry, chainId: 11155111, checkedAt: Date.now() })
 const wallet = (value: Address | null): WalletState => ({ status: value ? 'connected' : 'disconnected', address: value,
-  signer: value ? { address: value } as DuskSigner : null, unseal: null, error: null, connect: async () => {}, disconnect: mocks.disconnect })
+  signer: value ? { address: value } as DuskSigner : null, unseal: null, error: null, local: true, connect: async () => {}, pasteKey: () => null, disconnect: mocks.disconnect })
 let container: HTMLDivElement
 let root: Root
 const render = async (value: Address | null = address) => { await act(async () => root.render(createElement(WalletNameOnboarding, { wallet: wallet(value) }))) }

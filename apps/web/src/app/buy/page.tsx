@@ -73,6 +73,7 @@ import { formatCountdown } from '../../lib/countdown'
 import { formatWei } from '../../lib/market'
 import { historySources, readReputation } from '../../lib/past-read'
 import { useWallet } from '../../lib/wallet'
+import { WalletKeyField } from '../../components/WalletKeyField'
 import { useRequiredIdentity } from '../../lib/use-required-identity'
 import { readAttachment } from '../../lib/attach'
 import { listPrice, shareOfList, type ListPrice } from '../../lib/list-price'
@@ -850,14 +851,17 @@ function Identity(props: {
         {wallet.status === 'connected' && wallet.address ? (
           <>
             <WalletName address={wallet.address} className="figure" />
-
+            {wallet.local === false && (
+              <button type="button" className="ghost" onClick={wallet.disconnect}>Forget key</button>
+            )}
           </>
-        ) : (
+        ) : wallet.local === false ? null : (
           <button type="button" onClick={() => void wallet.connect()}>
             {wallet.status === 'connecting' ? <LoadingIndicator label="Loading configured wallet" /> : 'Load configured wallet'}
           </button>
         )}
       </p>
+      {wallet.local === false && wallet.status !== 'connected' && <WalletKeyField wallet={wallet} />}
       {wallet.status === 'error' && wallet.error !== null && (
         <p className="notice" role="alert">{wallet.error}</p>
       )}

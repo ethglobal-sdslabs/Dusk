@@ -137,7 +137,7 @@ export function EnsIdentity({ signer, onConnect, connecting = false }: { signer:
     return () => { live = false }
   }, [reader, identity, signer?.address])
 
-  const line = !signer ? { tone: 'muted', text: 'Add the wallet to config.json to register a Dusk name.' } : !config
+  const line = !signer ? { tone: 'muted', text: 'Connect a wallet to register a Dusk name.' } : !config
     ? { tone: 'warn', text: setup.status === 'disabled' ? 'Dusk name registration is not available yet.' : 'Dusk names are temporarily unavailable.' }
     : identityLine(identity)
   const enrollable = (config?.mode === 'enrollment' || config?.mode === 'application-enforced') && client !== null &&

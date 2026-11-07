@@ -60,7 +60,7 @@ describe('the rendered Dusk name setup', () => {
     await render(null)
     expect(input()).not.toBeNull()
     expect(input().disabled).toBe(true)
-    expect(container.textContent).toContain('Add the wallet to config.json')
+    expect(container.textContent).toContain('Connect a wallet to register a Dusk name.')
     await render(signer)
     expect(input().disabled).toBe(false)
     expect(button('Reserve name').disabled).toBe(true)
