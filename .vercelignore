@@ -1,0 +1,11 @@
+/config.json
+.env
+.env.*
+!.env.example
+/.dusk/
+/arkiv/
+/contracts/out/
+/contracts/cache/
+/contracts/broadcast/
+**/.next/
+**/node_modules/

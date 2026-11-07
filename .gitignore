@@ -21,3 +21,5 @@ arkiv/
 arkive.md
 
 .dusk/
+.vercel
+.env*

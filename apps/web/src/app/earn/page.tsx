@@ -41,6 +41,7 @@ import {
 import { formatWei } from '../../lib/market'
 import { fetchPrefill, type Prefill } from '../../lib/prefill'
 import { useWallet } from '../../lib/wallet'
+import { WalletKeyField } from '../../components/WalletKeyField'
 import { useRequiredIdentity } from '../../lib/use-required-identity'
 import {
   buildBrowserWorker,
@@ -561,7 +562,7 @@ export default function EarnPage() {
                     : price === null
                       ? 'Enter a whole number price (0 or more).'
                       : manageState?.ok === false
-                        ? 'Check og.accessKey in config.json.'
+                        ? wallet.local === false ? 'Check the 0G management key.' : 'Check og.accessKey in config.json.'
                         : 'Choose a model.'}
                 </p>
               )}
@@ -652,6 +653,7 @@ function Identity(props: {
   hasEscrowContract: boolean
   fromConfig: Prefill | null
 }) {
+  const pasting = props.wallet.local === false
 
   return (
     <section className="panel stack" aria-labelledby="who">
@@ -661,19 +663,56 @@ function Identity(props: {
         {props.wallet.status === 'connected' && props.wallet.address ? (
           <>
             <WalletName address={props.wallet.address} className="figure" />
-
+            {pasting && (
+              <button type="button" className="ghost" onClick={props.wallet.disconnect}>Forget key</button>
+            )}
           </>
-        ) : (
+        ) : pasting ? null : (
           <button type="button" onClick={() => void props.wallet.connect()}>
             {props.wallet.status === 'connecting' ? <LoadingIndicator label="Loading configured wallet" /> : 'Load configured wallet'}
           </button>
         )}
       </p>
+      {pasting && props.wallet.status !== 'connected' && (
+        <WalletKeyField wallet={props.wallet} label="Wallet private key (signs Arkiv and Galileo, pays testnet gas)" />
+      )}
       {props.wallet.status === 'error' && props.wallet.error !== null && (
         <p className="notice" role="alert">{props.wallet.error}</p>
       )}
 
-      {props.fromConfig !== null && !props.fromConfig.ogComputeKey && <p className="notice">Add og.computeKey to config.json to run inference.</p>}
+      {pasting ? (
+        <>
+          <label className="field">
+            <span>0G inference key (sk-)</span>
+            <input
+              type="password"
+              className="figure"
+              value={props.inferRaw}
+              onChange={(e) => props.onInfer(e.target.value)}
+              autoComplete="off"
+              spellCheck={false}
+              aria-invalid={props.inferState?.ok === false}
+            />
+            <span className="meta">Spends your credits. It stays in this tab and is never sent to Dusk.</span>
+          </label>
+          <label className="field">
+            <span>0G management key (mk-), optional</span>
+            <input
+              type="password"
+              className="figure"
+              value={props.manageRaw}
+              onChange={(e) => props.onManage(e.target.value)}
+              autoComplete="off"
+              spellCheck={false}
+              aria-invalid={props.manageState?.ok === false}
+            />
+            <span className="meta">Only reads your balance. Leave it empty and the credit level stays unknown.</span>
+          </label>
+          <OgKeyState state={props.manageRaw.trim() === '' ? null : props.manageState} />
+        </>
+      ) : (
+        props.fromConfig !== null && !props.fromConfig.ogComputeKey && <p className="notice">Add og.computeKey to config.json to run inference.</p>
+      )}
       {props.inferState?.ok === false && <p className="notice" role="alert">{props.inferState.error}</p>}
       {props.inferState?.ok === true && <p className="configured-account">Inference account ready</p>}
 
