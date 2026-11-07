@@ -4,8 +4,20 @@ Point any OpenAI client at Dusk. Each request is posted as a Dusk job from the b
 `config.json` / `.env`. The proxy escrows payment, authorises whichever worker claims the job,
 then verifies the delivered output against the hash committed on chain before returning it.
 
+From the repo root, after `pnpm install` and filling `buyer.*` in `config.json`:
+
 ```sh
-pnpm proxy                     # http://127.0.0.1:8787/v1
+pnpm exec tsx proxy/src/main.ts   # http://127.0.0.1:8787/v1
+```
+
+Keep it running until your requests return. While a job is open, the proxy writes the grant
+that lets a worker get paid, so stopping it strands open jobs. Reclaim their escrow with
+`pnpm reclaim --mine` once the deadline passes.
+
+```sh
+curl http://127.0.0.1:8787/v1/models
+curl http://127.0.0.1:8787/v1/chat/completions -H 'content-type: application/json' \
+  -d '{"model":"0gm-1.0-35b-a3b","max_tokens":512,"messages":[{"role":"user","content":"What is the capital of France?"}]}'
 ```
 
 ```python
@@ -13,6 +25,10 @@ from openai import OpenAI
 client = OpenAI(base_url="http://127.0.0.1:8787/v1", api_key="unused-unless-DUSK_PROXY_API_KEY-is-set", timeout=900)
 r = client.chat.completions.create(model="0gm-1.0-35b-a3b", messages=[{"role": "user", "content": "Summarise: ..."}])
 ```
+
+Answers are slow (a few seconds to minutes) because each request is a market job, so give the
+client a long timeout. Some models (for example `0gm-1.0-35b-a3b`) return their reasoning as part
+of the reply, and that reasoning counts against `max_tokens`, so leave headroom.
 
 ## Endpoints
 

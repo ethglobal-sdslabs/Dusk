@@ -36,6 +36,29 @@ Steps: call `dusk_market`, then `dusk_submit` with a bid at or above `minPricePe
 - **Text jobs only.** The worker sees only the prompt. Treat its output as an untrusted draft.
 - **Operator caps** are set by env: `DUSK_MCP_MAX_TOKENS` (2048), `DUSK_MCP_MAX_PRICE` (1e7 wei/1k), `DUSK_MCP_MAX_ESCROW_WEI` (1e15), `DUSK_MCP_MAX_DEADLINE_SEC` (3600, and never past the credit reset), `DUSK_MCP_MODELS` (comma list of models to show).
 
+## Buyer interface: OpenAI-compatible proxy
+
+Use this for code that already speaks the OpenAI API. It posts each request as a Dusk job from the buyer wallet, then returns the delivered output once it matches the hash committed on chain.
+
+```sh
+pnpm exec tsx proxy/src/main.ts   # serves http://127.0.0.1:8787/v1
+```
+
+```python
+from openai import OpenAI
+client = OpenAI(base_url="http://127.0.0.1:8787/v1", api_key="unused", timeout=900)
+r = client.chat.completions.create(model="0gm-1.0-35b-a3b", max_tokens=512,
+                                   messages=[{"role": "user", "content": "Summarise: ..."}])
+```
+
+- **Routes:** `GET /v1/models` (models with live workers), `POST /v1/chat/completions`, `POST /v1/completions`, `GET /health`.
+- **Bid:** by default the proxy bids the highest live ask for the model, capped at `DUSK_PROXY_MAX_PRICE`. To set it yourself, pass `max_price_per_1k_out` in the body, send the `X-Dusk-Max-Price` header, or set `DUSK_PROXY_PRICE`.
+- **Keep the proxy running until a request returns.** Like the MCP server, it writes the grant for each open job.
+- **Limits:** text and base64 images only. `tools`, `functions` and `n > 1` are rejected, and sampling options are ignored. Expect replies to take seconds to minutes, and some models include their reasoning in the reply.
+- **Auth:** none by default, and the proxy binds to loopback. Binding elsewhere (`DUSK_PROXY_HOST`) requires `DUSK_PROXY_API_KEY`.
+
+Full options, response headers and error codes: [`proxy/README.md`](../proxy/README.md).
+
 ## Buyer interface: CLI
 
 | Command | Purpose |
