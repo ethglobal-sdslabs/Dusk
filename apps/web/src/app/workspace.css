@@ -857,11 +857,12 @@ html:has(.workspace) { scroll-padding-top: 98px; }
 .workspace .chat-section .prompt-visibility { grid-column: 1 / -1; max-width: none; gap: 10px; }
 .workspace .ground .prompt-visibility > legend { color: var(--ws-text); font-size: 16px; font-weight: 600; }
 .visibility-description { margin: 0; color: var(--ws-muted); font-size: 15px; line-height: 1.5; }
-.workspace .prompt-visibility .choices { display: flex; gap: 8px; margin: 0; }
+.workspace .prompt-visibility .choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: min(100%, 272px); gap: 8px; margin: 0; }
 .workspace .prompt-visibility .choices label {
-  min-height: 44px; align-items: center; gap: 10px; padding: 10px 16px;
-  border: 1px solid var(--ws-border); border-radius: 999px; color: var(--ws-muted); font-size: 15px;
+  min-width: 0; min-height: 44px; align-items: center; justify-content: center; gap: 10px; padding: 10px 16px;
+  border: 1px solid var(--ws-border); border-radius: 999px; color: var(--ws-muted); font-size: 15px; line-height: 1.4;
 }
+.workspace .ground .prompt-visibility input[type='radio'] { margin: 0; }
 .workspace .prompt-visibility .choices label:has(input:checked) { border-color: #777; background: #292929; color: var(--ws-text); }
 .workspace .prompt-visibility .choices label:has(input:disabled) { opacity: .65; }
 .workspace .ground .prompt-visibility > .meta { font-size: 14px; }
@@ -883,6 +884,10 @@ html:has(.workspace) { scroll-padding-top: 98px; }
 .model-select-control { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .model-select-control select { flex: 1; min-width: 0; }
 .workspace .ground .chat-composer-foot { font-size: 14px; }
+
+.workspace .ground .worker-status-indicator { display: flex; align-items: baseline; gap: 9px; width: fit-content; max-width: 100%; margin: 0; padding: 5px 10px; border-radius: 8px; background: #252525; color: #e2e2e2; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.worker-status-indicator::before { content: ''; width: 7px; height: 7px; flex: none; align-self: center; border-radius: 50%; background: currentColor; }
+.workspace .ground .worker-status-indicator[data-state='running'] { color: #a4e1b7; background: #192b1e; }
 @media (max-width: 760px) {
   .workspace .chat-section .prompt-visibility { grid-column: auto; }
   .chat-thread:has(.chat-empty) { padding: 18px 18px 0; }
